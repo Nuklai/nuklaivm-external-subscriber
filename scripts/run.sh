@@ -43,6 +43,7 @@ echo "Waiting for PostgreSQL to start..."
 sleep 10
 
 # Create database schema
+# Create database schema
 echo "Creating database schema..."
 docker exec -i timescaledb psql -U postgres -d blockchain << EOF
 -- Block Table
@@ -70,12 +71,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     timestamp TIMESTAMPTZ
 );
 
--- ActCREATE TABLE IF NOT EXISTS actions (
+-- Actions Table
+CREATE TABLE IF NOT EXISTS actions (
     id SERIAL PRIMARY KEY,
     tx_hash TEXT REFERENCES transactions(tx_hash) ON DELETE CASCADE,
     action_type SMALLINT,
     action_details JSONB
-);ls JSONB
 );
 
 -- Genesis Data Table
