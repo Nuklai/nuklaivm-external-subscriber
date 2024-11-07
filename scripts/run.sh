@@ -14,6 +14,9 @@ while getopts "n" opt; do
   esac
 done
 
+# Stop the previous instance of the application
+./scripts/stop.sh
+
 rm -f block_subscriber.log
 
 if [ "$NUKE" = true ]; then
