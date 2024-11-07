@@ -1,0 +1,85 @@
+package models
+
+import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"strconv"
+)
+
+type Action struct {
+	ID            int                    `json:"ID"`
+	TxHash        string                 `json:"TxHash"`
+	ActionType    int                    `json:"ActionType"`
+	ActionDetails map[string]interface{} `json:"ActionDetails"`
+	Timestamp     string                 `json:"Timestamp"`
+}
+
+// FetchAllActions retrieves actions from the database with pagination
+func FetchAllActions(db *sql.DB, limit, offset string) ([]Action, error) {
+	rows, err := db.Query(`SELECT * FROM actions ORDER BY timestamp DESC LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanActions(rows)
+}
+
+// FetchActionsByBlock retrieves actions associated with a block by height or hash
+func FetchActionsByBlock(db *sql.DB, blockIdentifier string) ([]Action, error) {
+	var query string
+
+	if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
+		query = `
+			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_details, actions.timestamp
+			FROM actions
+			INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
+			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
+			WHERE blocks.block_height = $1`
+	} else {
+		query = `
+			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_details, actions.timestamp
+			FROM actions
+			INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
+			WHERE transactions.block_hash = $1`
+	}
+
+	rows, err := db.Query(query, blockIdentifier)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanActions(rows)
+}
+
+// FetchActionsByTransactionHash retrieves actions associated with a transaction by its hash
+func FetchActionsByTransactionHash(db *sql.DB, txHash string) ([]Action, error) {
+	rows, err := db.Query(`SELECT id, tx_hash, action_type, action_details, timestamp FROM actions WHERE tx_hash = $1`, txHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanActions(rows)
+}
+
+// Helper function to scan action rows and unmarshal action details
+func scanActions(rows *sql.Rows) ([]Action, error) {
+	var actions []Action
+
+	for rows.Next() {
+		var action Action
+		var actionDetailsJSON []byte
+		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &actionDetailsJSON, &action.Timestamp); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(actionDetailsJSON, &action.ActionDetails); err != nil {
+			return nil, errors.New("unable to parse action details")
+		}
+		actions = append(actions, action)
+	}
+
+	return actions, rows.Err() // Check for errors during iteration
+}
