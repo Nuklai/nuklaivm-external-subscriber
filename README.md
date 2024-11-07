@@ -1,23 +1,23 @@
 # NuklaiVM External Subscriber
 
-This project is an external subscriber for the NuklaiVM blockchain that captures and stores historical blockchain data. It runs a gRPC server to receive block and transaction data and a REST API server to expose that data for querying. The subscriber stores data in a PostgreSQL database with TimescaleDB enabled for efficient handling of time-series data.
+The `NuklaiVM External Subscriber` is an external data collector for the NuklaiVM blockchain. This application listens to blockchain events and saves block, transaction, and action data to a PostgreSQL database with TimescaleDB for efficient time-series data handling. It provides both a gRPC server to receive blockchain data in real time and a REST API for querying historical blockchain data.
 
-## Features
+## Key Features
 
-- gRPC server to receive block and transaction data from the blockchain.
-- REST API to expose the stored blockchain data for easy retrieval.
-- Supports real-time data storage, including blocks, transactions, and actions.
-- Full historical data storage beyond the default 1024-block limit of the in-memory indexer.
-- Written in Go for efficient data processing.
+- **gRPC Server**: Receives block and transaction data from the blockchain.
+- **REST API**: Exposes blockchain data, including blocks, transactions, actions, and genesis data, with pagination and filtering capabilities.
+- **Data Storage**: Stores data in PostgreSQL with TimescaleDB for efficient storage and querying of time-series data.
+- **Historical Data Storage**: Provides full historical data beyond the default 1024-block in-memory limit of the NuklaiVM indexer.
+- **Modular Configurations**: Includes customizable configurations for server addresses and database settings.
 
-## Requirements
+## Prerequisites
 
-- [Go 1.22.5+](https://golang.org/dl/)
-- [PostgreSQL with TimescaleDB](https://www.timescale.com/)
-- Docker (for setting up PostgreSQL using Docker Compose)
-- gRPC tools
+- **Go**: Version 1.22.5 or higher
+- **PostgreSQL**: With TimescaleDB enabled
+- **Docker**: For setting up PostgreSQL with TimescaleDB
+- **gRPC tools**: For managing the gRPC server
 
-## Running Instructions
+## Installation and Setup
 
 ### Step 1: Clone the Repository
 
@@ -26,200 +26,153 @@ git clone https://github.com/Nuklai/nuklaivm-external-subscriber
 cd nuklaivm-external-subscriber
 ```
 
-### Step 2: Run the Program
+### Step 2: Environment Setup
+
+Set up environment variables, particularly `DATABASE_URL` for PostgreSQL access. By default, this is configured in `config/config.go` to:
+
+```sh
+DATABASE_URL="postgres://postgres:postgres@localhost:5432/blockchain?sslmode=disable"
+```
+
+### Step 3: Run the Program
+
+Run the setup script to initialize the database and start the servers:
 
 ```sh
 ./scripts/run.sh
 ```
 
-This will do the following:
+This script:
 
-- Use Docker Compose to set up a PostgreSQL instance with TimescaleDB.
-- Start a PostgreSQL container with the necessary tables to store blocks, transactions, actions, and genesis data.
+- Starts a PostgreSQL container with TimescaleDB using Docker Compose.
+- Sets up database tables and indexes.
+- Builds and runs the Go application, starting both the gRPC and REST API servers.
 
-If you would like to delete the postgres data volume, you can do:
+For a fresh start (removing old data), use:
 
 ```sh
 ./scripts/run.sh -n
 ```
 
-### Step 3: Access the API
+### Step 4: Access the REST API
 
-The REST API will be available at `http://localhost:8080`.
+The REST API is available at `http://localhost:8080`.
 
-## API Documentation
+## Usage
 
 ### REST API Endpoints
 
-The following REST API endpoints are available:
+#### Block Endpoints
 
 - **Get Block by Height or Hash**
 
   - **Endpoint**: `/blocks/:identifier`
-  - **Description**: Retrieve a block by its height or hash. The identifier can be either the block height or block hash.
+  - **Description**: Retrieve a block by its height or hash.
+  - **Example**: `curl http://localhost:8080/blocks/29` or `curl http://localhost:8080/blocks/block_hash_here`
 
 - **Get All Blocks**
-
   - **Endpoint**: `/blocks`
-  - **Description**: Retrieve all blocks, with optional pagination support.
   - **Parameters**:
     - `limit`: Number of blocks to return (default: 10).
     - `offset`: Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/blocks?limit=5&offset=0"`
+
+#### Transaction Endpoints
 
 - **Get Transaction by Hash**
 
   - **Endpoint**: `/transactions/:tx_hash`
-  - **Description**: Retrieve a transaction by its hash.
+  - **Example**: `curl http://localhost:8080/transactions/tx_hash_here`
 
 - **Get All Transactions**
 
   - **Endpoint**: `/transactions`
-  - **Description**: Retrieve all transactions, with optional pagination support.
   - **Parameters**:
     - `limit`: Number of transactions to return (default: 10).
     - `offset`: Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/transactions?limit=5&offset=0"`
 
-- **Get Transactions by Block Height or Hash**
-
+- **Get Transactions by Block**
   - **Endpoint**: `/transactions/block/:identifier`
-  - **Description**: Retrieve all transactions associated with a block, specified by either block height or hash.
+  - **Description**: Retrieve transactions associated with a block, specified by either block height or hash.
+  - **Example**: `curl http://localhost:8080/transactions/block/29`
+
+#### Action Endpoints
+
+- **Get All Actions**
+
+  - **Endpoint**: `/actions`
+  - **Parameters**:
+    - `limit`: Number of actions to return (default: 10).
+    - `offset`: Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/actions?limit=5&offset=0"`
 
 - **Get Actions by Transaction Hash**
 
   - **Endpoint**: `/actions/:tx_hash`
   - **Description**: Retrieve actions associated with a specific transaction hash.
+  - **Example**: `curl http://localhost:8080/actions/tx_hash_here`
 
-- **Get All Actions**
-
-  - **Endpoint**: `/actions`
-  - **Description**: Retrieve all actions, with optional pagination support.
-  - **Parameters**:
-    - `limit`: Number of actions to return (default: 10).
-    - `offset`: Offset for pagination (default: 0).
-
-- **Get Actions by Block Height or Hash**
-
+- **Get Actions by Block**
   - **Endpoint**: `/actions/block/:identifier`
-  - **Description**: Retrieve all actions within a block, specified by either block height or hash.
+  - **Description**: Retrieve actions within a block, specified by either block height or hash.
+  - **Example**: `curl http://localhost:8080/actions/block/29`
+
+#### Genesis Data Endpoint
 
 - **Get Genesis Data**
   - **Endpoint**: `/genesis`
   - **Description**: Retrieve the genesis data.
+  - **Example**: `curl http://localhost:8080/genesis`
 
-### Example Queries
+### gRPC Server
 
-Here are some example queries that can be made to the REST API endpoints:
-
-1. **Retrieve a Block by Height or Hash**
-
-   ```sh
-   curl http://localhost:8080/blocks/29
-   ```
-
-   or
-
-   ```sh
-   curl http://localhost:8080/blocks/2LgjCkJFLRGmjgcSA7BzKnokWsTGggm41kZaWhXjh36KJYw59i
-   ```
-
-2. **Retrieve All Blocks**
-
-   ```sh
-   curl "http://localhost:8080/blocks?limit=5&offset=0"
-   ```
-
-3. **Retrieve a Transaction by Hash**
-
-   ```sh
-   curl http://localhost:8080/transactions/2pe3EtG86gmDXri1wCCuHGPUE7s5p1Yoks91J1fTmecbNPU7uk
-   ```
-
-4. **Retrieve All Transactions**
-
-   ```sh
-   curl "http://localhost:8080/transactions?limit=5&offset=0"
-   ```
-
-5. **Retrieve Transactions by Block Height or Hash**
-
-   ```sh
-   curl http://localhost:8080/transactions/block/29
-   ```
-
-   or
-
-   ```sh
-   curl http://localhost:8080/transactions/block/2LgjCkJFLRGmjgcSA7BzKnokWsTGggm41kZaWhXjh36KJYw59i
-   ```
-
-6. **Retrieve Actions by Transaction Hash**
-
-   ```sh
-   curl http://localhost:8080/actions/2pe3EtG86gmDXri1wCCuHGPUE7s5p1Yoks91J1fTmecbNPU7uk
-   ```
-
-7. **Retrieve All Actions**
-
-   ```sh
-   curl "http://localhost:8080/actions?limit=5&offset=0"
-   ```
-
-8. **Retrieve Actions by Block Height or Hash**
-
-   ```sh
-   curl http://localhost:8080/actions/block/29
-   ```
-
-   or
-
-   ```sh
-   curl http://localhost:8080/actions/block/2LgjCkJFLRGmjgcSA7BzKnokWsTGggm41kZaWhXjh36KJYw59i
-   ```
-
-9. **Retrieve Genesis Data**
-
-   ```sh
-   curl http://localhost:8080/genesis
-   ```
-
-## gRPC Server
-
-The gRPC server listens on port `50051` and supports the following methods:
+The gRPC server listens on port `50051` and implements methods defined in the `ExternalSubscriber` service:
 
 - **Initialize**: Receives the genesis data and saves it to the database.
-- **AcceptBlock**: Receives information about a new block and saves it along with transaction data.
-
-### Proto Definition
-
-The gRPC server is implemented using the `ExternalSubscriber` service defined in the `hypersdk` proto.
-
-## Code Structure
-
-- **`main.go`**: Contains the main logic for the gRPC server, REST API, and database interactions.
-- **`scripts/run.sh`**: Script for setting up the PostgreSQL database, including schema creation and running the program.
-- **`docker-compose.yml`**: Docker Compose file to set up a PostgreSQL instance with TimescaleDB.
+- **AcceptBlock**: Receives block information and saves block, transaction, and action data.
 
 ## Database Schema
 
-The database schema consists of the following tables:
+The database schema includes the following tables:
 
-- **`blocks`**: Stores block data, including height, hash, parent block, state root, timestamp, and unit prices.
-- **`transactions`**: Stores transaction data, including hash, associated block hash, sponsor, fee, success status, and outputs.
+- **`blocks`**: Stores block information (height, hash, parent hash, state root, timestamp, and unit prices).
+- **`transactions`**: Stores transaction details (hash, block association, sponsor, fee, success status, outputs).
 - **`actions`**: Stores actions within transactions, including action type and details.
 - **`genesis_data`**: Stores the genesis data received during initialization.
 
-### Sample Schema Setup
+### Indexes
 
-The schema setup is included in `scripts/run.sh` and executed using Docker.
+Indexes are created on critical fields to optimize query performance:
+
+- `block_height`, `block_hash`, and `timestamp` in the `blocks` table.
+- `tx_hash`, `block_hash`, and `sponsor` in the `transactions` table.
+- `tx_hash` and `action_type` in the `actions` table.
 
 ## Running Tests
 
-To run tests, make sure to have the testing environment configured properly. You can use the following command to run unit tests:
+Unit tests are located in each package, and the command below will run all tests:
 
 ```sh
 go test ./...
 ```
 
-## Contributions
+Mocking is used to simulate database connections for accurate testing without requiring a live database.
 
-Feel free to submit pull requests or issues on the GitHub repository. All contributions are welcome to improve the project.
+## Logging
+
+The subscriber logs important events and errors to `block_subscriber.log`. For structured logging, it’s recommended to use packages like `logrus` or `zap` for better observability.
+
+## Contributing
+
+Contributions are welcome! To contribute:
+
+1. Fork the repository.
+2. Create a new feature branch (`git checkout -b feature-name`).
+3. Commit your changes (`git commit -am 'Add new feature'`).
+4. Push to the branch (`git push origin feature-name`).
+5. Create a Pull Request.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
