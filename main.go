@@ -62,21 +62,25 @@ type Action struct {
 	TxHash        string                 `json:"TxHash"`
 	ActionType    int                    `json:"ActionType"`
 	ActionDetails map[string]interface{} `json:"ActionDetails"`
+	Timestamp     string                 `json:"Timestamp"`
 }
 
 // GetGenesisData retrieves the genesis data stored in the database
 func GetGenesisData(c *gin.Context) {
-	var genesis struct {
-		ID   int
-		Data string
-	}
-	err := db.QueryRow(`SELECT * FROM genesis_data LIMIT 1`).Scan(&genesis.ID, &genesis.Data)
+	var genesisData string
+	err := db.QueryRow(`SELECT data FROM genesis_data LIMIT 1`).Scan(&genesisData)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Genesis data not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, genesis)
+	var parsedData map[string]interface{}
+	if err := json.Unmarshal([]byte(genesisData), &parsedData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to parse genesis data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, parsedData)
 }
 
 // GetAllBlocks retrieves all blocks stored in the database, with pagination support
@@ -141,7 +145,7 @@ func GetAllActions(c *gin.Context) {
 	limit := c.DefaultQuery("limit", "10")
 	offset := c.DefaultQuery("offset", "0")
 
-	rows, err := db.Query(`SELECT * FROM actions ORDER BY id DESC LIMIT $1 OFFSET $2`, limit, offset)
+	rows, err := db.Query(`SELECT * FROM actions ORDER BY timestamp DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions"})
 		return
@@ -153,7 +157,7 @@ func GetAllActions(c *gin.Context) {
 	for rows.Next() {
 		var action Action
 		var actionDetailsJSON []byte
-		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &actionDetailsJSON); err != nil {
+		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &actionDetailsJSON, &action.Timestamp); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to parse action"})
 			return
 		}
@@ -232,14 +236,15 @@ func GetTransactionsByBlock(c *gin.Context) {
 
 	// Check if blockIdentifier is numeric for querying by block height
 	if height, parseErr := strconv.ParseInt(blockIdentifier, 10, 64); parseErr == nil {
-		// blockIdentifier is a number; query by block height
+		// Query by block height using a join with the blocks table
 		query = `
-			SELECT id, tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp
+			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.max_fee, transactions.success, transactions.fee, transactions.outputs, transactions.timestamp
 			FROM transactions
-			WHERE block_height = $1::bigint`
+			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
+			WHERE blocks.block_height = $1`
 		rows, err = db.Query(query, height)
 	} else {
-		// blockIdentifier is not a number; query by block hash
+		// Query by block hash directly
 		query = `
 			SELECT id, tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp
 			FROM transactions
@@ -282,17 +287,18 @@ func GetActionsByBlock(c *gin.Context) {
 
 	// Check if blockIdentifier is numeric for querying by block height
 	if height, parseErr := strconv.ParseInt(blockIdentifier, 10, 64); parseErr == nil {
-		// blockIdentifier is a number; query by block height
+		// Query by block height using a join with the blocks table
 		query = `
-			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_details
+			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_details, actions.timestamp
 			FROM actions
 			INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
-			WHERE transactions.block_height = $1::bigint`
+			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
+			WHERE blocks.block_height = $1`
 		rows, err = db.Query(query, height)
 	} else {
-		// blockIdentifier is not a number; query by block hash
+		// Query by block hash directly
 		query = `
-			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_details
+			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_details, actions.timestamp
 			FROM actions
 			INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
 			WHERE transactions.block_hash = $1`
@@ -310,7 +316,7 @@ func GetActionsByBlock(c *gin.Context) {
 	for rows.Next() {
 		var action Action
 		var actionDetailsJSON []byte
-		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &actionDetailsJSON); err != nil {
+		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &actionDetailsJSON, &action.Timestamp); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to parse action"})
 			return
 		}
@@ -327,7 +333,7 @@ func GetActionsByBlock(c *gin.Context) {
 // GetActionsByTransactionHash retrieves actions by transaction hash
 func GetActionsByTransactionHash(c *gin.Context) {
 	txHash := c.Param("tx_hash")
-	rows, err := db.Query(`SELECT id, tx_hash, action_type, action_details FROM actions WHERE tx_hash = $1`, txHash)
+	rows, err := db.Query(`SELECT id, tx_hash, action_type, action_details, timestamp FROM actions WHERE tx_hash = $1`, txHash)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions"})
 		return
@@ -339,7 +345,7 @@ func GetActionsByTransactionHash(c *gin.Context) {
 	for rows.Next() {
 		var action Action
 		var actionDetailsJSON []byte
-		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &actionDetailsJSON); err != nil {
+		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &actionDetailsJSON, &action.Timestamp); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to parse action"})
 			return
 		}
@@ -441,102 +447,98 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		return &emptypb.Empty{}, nil
 	}
 
-	// Extract details from the unmarshaled block
 	blk := executedBlock.Block
 	blockID := executedBlock.BlockID.String()
 	parentID := blk.Prnt.String()
 	stateRoot := blk.StateRoot.String()
 	unitPrices := executedBlock.UnitPrices.String()
+	timestamp := time.UnixMilli(blk.Tmstmp).Format(time.RFC3339)
 
-	fmt.Printf("Block Details: ID: %s, ParentID: %s, StateRoot: %s, Height: %d\n", blockID, parentID, stateRoot, blk.Hght)
-
-	// Mutex to prevent duplicate data insertion from multiple nodes
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Save block data to database
-	_, err = db.Exec(`INSERT INTO blocks (block_height, block_hash, parent_block_hash, state_root, timestamp, unit_prices) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (block_hash) DO NOTHING`,
-		blk.Hght, blockID, parentID, stateRoot, time.UnixMilli(blk.Tmstmp).Format(time.RFC3339), unitPrices)
+	// Save block data to the database
+	_, err = db.Exec(`INSERT INTO blocks (block_height, block_hash, parent_block_hash, state_root, timestamp, unit_prices)
+		VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (block_height) DO NOTHING`,
+		blk.Hght, blockID, parentID, stateRoot, timestamp, unitPrices)
 	if err != nil {
 		fmt.Printf("Error saving block to database: %v\n", err)
 		return &emptypb.Empty{}, nil
 	}
 
-	// Save transaction data to database and process transaction results
-	if len(blk.Txs) > 0 {
-		fmt.Printf("Transactions in block %d:\n", blk.Hght)
-		for i, tx := range blk.Txs {
-			success := false
-			txID := tx.ID().String()
-			sponsor := tx.Sponsor().String()
-			fee := uint64(0)
-			outputs := "{}"
+	fmt.Printf("Block Details: ID: %s, ParentID: %s, StateRoot: %s, Height: %d\n", blockID, parentID, stateRoot, blk.Hght)
+	fmt.Printf("Transactions in block %d: %d\n", blk.Hght, len(blk.Txs))
 
-			fmt.Printf("\tTransaction %d: %s\n", i, txID)
+	for i, tx := range blk.Txs {
+		txID := tx.ID().String()
+		sponsor := tx.Sponsor().String()
+		fee := uint64(0)
+		outputs := "{}"
+		success := false
 
-			// Process transaction results if available
-			if len(executedBlock.Results) > i {
-				result := executedBlock.Results[i]
-				fee = result.Fee
-				fmt.Printf("\tFee Consumed: %d NAI\n", fee)
-				if result.Success {
-					success = true
-					packer := codec.NewReader(result.Outputs[0], len(result.Outputs[0]))
-					r, err := vm.OutputParser.Unmarshal(packer)
+		if i < len(executedBlock.Results) {
+			result := executedBlock.Results[i]
+			fee = result.Fee
+			success = result.Success
+
+			if success && len(result.Outputs) > 0 {
+				// Parse outputs if available
+				packer := codec.NewReader(result.Outputs[0], len(result.Outputs[0]))
+				r, err := vm.OutputParser.Unmarshal(packer)
+				if err == nil {
+					outputJSON, err := json.Marshal(r)
 					if err == nil {
-						outputJSON, err := json.Marshal(r)
-						if err == nil {
-							outputs = string(outputJSON)
-						}
+						outputs = string(outputJSON)
 					}
 				}
 			}
+		} else {
+			fmt.Printf("Warning: No transaction result found for transaction index %d\n", i)
+		}
 
-			fmt.Printf("\tOutputs: %v\n", outputs)
+		fmt.Printf("\tTransaction %d: %s\n", i+1, txID)
+		fmt.Printf("\tOutputs: %v\n", outputs)
 
-			// Save transaction to the database
-			_, err := db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8) ON CONFLICT (tx_hash) DO NOTHING`,
-				txID, blockID, sponsor, tx.MaxFee(), success, fee, outputs, time.UnixMilli(blk.Tmstmp).Format(time.RFC3339))
-			if err != nil {
-				fmt.Printf("Error saving transaction to database: %v\n", err)
+		// Save transaction to the database
+		_, err := db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp)
+			VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8) ON CONFLICT (tx_hash) DO NOTHING`,
+			txID, blockID, sponsor, tx.MaxFee(), success, fee, outputs, timestamp)
+		if err != nil {
+			fmt.Printf("Error saving transaction to database: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("\tNumber of Actions: %d\n", len(tx.Actions))
+
+		// Process and save actions associated with the transaction
+		for j, action := range tx.Actions {
+			actionType := action.GetTypeID()
+
+			// Use reflection to dynamically get field names and values from the action
+			actionValue := reflect.ValueOf(action).Elem()
+			actionDetails := make(map[string]interface{})
+
+			for i := 0; i < actionValue.NumField(); i++ {
+				field := actionValue.Type().Field(i)
+				fieldName := field.Name
+				fieldValue := actionValue.Field(i).Interface()
+				actionDetails[fieldName] = fieldValue
 			}
 
-			fmt.Printf("\tNumber of Actions: %d\n", len(tx.Actions))
-			// Process and save actions associated with the transaction
-			for j, action := range tx.Actions {
-				fmt.Printf("\t\tAction %d:\n", j)
-				actionType := action.GetTypeID()
+			actionDetailsJSON, err := json.Marshal(actionDetails)
+			if err != nil {
+				fmt.Printf("Error marshaling action details: %v\n", err)
+				actionDetailsJSON = []byte("{}")
+			}
 
-				// Use reflection to dynamically get field names and values from the action
-				actionValue := reflect.ValueOf(action).Elem()
-				actionDetails := make(map[string]interface{})
+			fmt.Printf("\t\tAction %d: Type: %d, Details: %s\n", j+1, actionType, actionDetailsJSON)
 
-				// Iterate through all fields of the action struct
-				for i := 0; i < actionValue.NumField(); i++ {
-					field := actionValue.Type().Field(i)
-					fieldName := field.Name
-					fieldValue := actionValue.Field(i).Interface()
-
-					// Store field name and value in the map
-					actionDetails[fieldName] = fieldValue
-				}
-
-				// Convert the action details to JSON
-				actionDetailsJSON, err := json.Marshal(actionDetails)
-				if err != nil {
-					fmt.Printf("Error marshaling action details: %v\n", err)
-					actionDetailsJSON = []byte("{}") // Use empty JSON object on error
-				}
-
-				fmt.Printf("\t\tAction Type: %d\n", actionType)
-				fmt.Printf("\t\tAction Details: %s\n", actionDetailsJSON)
-
-				// Save each action to the actions table
-				_, err = db.Exec(`INSERT INTO actions (tx_hash, action_type, action_details) VALUES ($1, $2, $3::jsonb)`,
-					txID, actionType, actionDetailsJSON)
-				if err != nil {
-					fmt.Printf("Error saving action to database: %v\n", err)
-				}
+			// Save each action to the actions table
+			_, err = db.Exec(`INSERT INTO actions (tx_hash, action_type, action_details, timestamp)
+				VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (tx_hash) DO NOTHING`,
+				txID, actionType, actionDetailsJSON, timestamp)
+			if err != nil {
+				fmt.Printf("Error saving action to database: %v\n", err)
 			}
 		}
 	}

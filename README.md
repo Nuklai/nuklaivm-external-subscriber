@@ -113,13 +113,13 @@ Here are some example queries that can be made to the REST API endpoints:
 1. **Retrieve a Block by Height or Hash**
 
    ```sh
-   curl http://localhost:8080/blocks/10
+   curl http://localhost:8080/blocks/29
    ```
 
    or
 
    ```sh
-   curl http://localhost:8080/blocks/abcd1234
+   curl http://localhost:8080/blocks/2LgjCkJFLRGmjgcSA7BzKnokWsTGggm41kZaWhXjh36KJYw59i
    ```
 
 2. **Retrieve All Blocks**
@@ -131,7 +131,7 @@ Here are some example queries that can be made to the REST API endpoints:
 3. **Retrieve a Transaction by Hash**
 
    ```sh
-   curl http://localhost:8080/transactions/abcd1234
+   curl http://localhost:8080/transactions/2pe3EtG86gmDXri1wCCuHGPUE7s5p1Yoks91J1fTmecbNPU7uk
    ```
 
 4. **Retrieve All Transactions**
@@ -143,19 +143,19 @@ Here are some example queries that can be made to the REST API endpoints:
 5. **Retrieve Transactions by Block Height or Hash**
 
    ```sh
-   curl http://localhost:8080/transactions/block/10
+   curl http://localhost:8080/transactions/block/29
    ```
 
    or
 
    ```sh
-   curl http://localhost:8080/transactions/block/abcd1234
+   curl http://localhost:8080/transactions/block/2LgjCkJFLRGmjgcSA7BzKnokWsTGggm41kZaWhXjh36KJYw59i
    ```
 
 6. **Retrieve Actions by Transaction Hash**
 
    ```sh
-   curl http://localhost:8080/actions/txid1234
+   curl http://localhost:8080/actions/2pe3EtG86gmDXri1wCCuHGPUE7s5p1Yoks91J1fTmecbNPU7uk
    ```
 
 7. **Retrieve All Actions**
@@ -167,13 +167,13 @@ Here are some example queries that can be made to the REST API endpoints:
 8. **Retrieve Actions by Block Height or Hash**
 
    ```sh
-   curl http://localhost:8080/actions/block/100
+   curl http://localhost:8080/actions/block/29
    ```
 
    or
 
    ```sh
-   curl http://localhost:8080/actions/block/abcd1234
+   curl http://localhost:8080/actions/block/2LgjCkJFLRGmjgcSA7BzKnokWsTGggm41kZaWhXjh36KJYw59i
    ```
 
 9. **Retrieve Genesis Data**
