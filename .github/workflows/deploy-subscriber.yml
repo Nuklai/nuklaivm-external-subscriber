@@ -26,7 +26,7 @@ env:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref == 'refs/heads/prod' && 'prod' || github.ref == 'refs/heads/dev' && 'dev' || 'dev' }}
+    environment: ${{ github.ref == 'refs/heads/prod' && 'prod' || github.ref == 'refs/heads/dev' && 'dev' || 'prod' }}
 
     steps:
     - uses: actions/checkout@v4
