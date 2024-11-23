@@ -45,7 +45,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.PRODUCT }}-${{ env.APPLICATION }}-deployer-${{ env.AWS_REGION }}-${{ env.ENV }}
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.PRODUCT }}-${{ env.APPLICATION }}-deployer-${{ env.AWS_REGION }}-${{ env.ENVIRONMENT }}
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
@@ -56,7 +56,7 @@ jobs:
       id: build-image
       env:
         ECR_REGISTRY: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-        ECR_REPOSITORY: ${{ env.PRODUCT }}-${{ env.APPLICATION }}-${{ env.APPLICATION }}-${{ env.ENV }}
+        ECR_REPOSITORY: ${{ env.PRODUCT }}-${{ env.APPLICATION }}-${{ env.APPLICATION }}-${{ env.ENVIRONMENT }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -f Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -76,5 +76,5 @@ jobs:
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
         service: ${{ env.APPLICATION }}
-        cluster: ${{ env.PRODUCT }}-${{ env.APPLICATION }}-${{ env.ENV }}
+        cluster: ${{ env.PRODUCT }}-${{ env.APPLICATION }}-${{ env.ENVIRONMENT }}
         wait-for-service-stability: true
