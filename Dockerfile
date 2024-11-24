@@ -8,7 +8,7 @@ WORKDIR /go/src/app
 COPY . .
 COPY ./infra/scripts/startup.sh build/
 # Build the Go application
-RUN go build -o build/subscriber
+RUN go build -o build/subscriber main.go
 
 
 #final stage
@@ -21,5 +21,6 @@ RUN chmod a+x /app/startup.sh
 ENTRYPOINT [ "/app/startup.sh" ]
 LABEL Name=subscriber
 EXPOSE 8080
+EXPOSE 50051
 WORKDIR /app
 CMD [ "/app/subscriber" ]
