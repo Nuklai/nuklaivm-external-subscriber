@@ -64,7 +64,7 @@ func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*em
 	}
 
 	// Save genesis data to database
-	_, err := s.db.Exec(`INSERT INTO genesis_data (data) VALUES ($1::jsonb) ON CONFLICT DO NOTHING`, string(genesisData))
+	_, err := s.db.Exec(`INSERT INTO genesis_data (data) VALUES ($1::json) ON CONFLICT DO NOTHING`, string(genesisData))
 	if err != nil {
 		fmt.Printf("Error saving genesis data to database: %v\n", err)
 	}
@@ -148,7 +148,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 
 		// Save transaction to the database
 		_, err := s.db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp)
-			VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8) ON CONFLICT (tx_hash) DO NOTHING`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8) ON CONFLICT (tx_hash) DO NOTHING`,
 			txID, blockID, sponsor, tx.MaxFee(), success, fee, outputs, timestamp)
 		if err != nil {
 			fmt.Printf("Error saving transaction to database: %v\n", err)
@@ -182,7 +182,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 
 			// Save each action to the actions table
 			_, err = s.db.Exec(`INSERT INTO actions (tx_hash, action_type, action_details, timestamp)
-				VALUES ($1, $2, $3::jsonb, $4) ON CONFLICT (tx_hash) DO NOTHING`,
+				VALUES ($1, $2, $3::json, $4) ON CONFLICT (tx_hash) DO NOTHING`,
 				txID, actionType, actionDetailsJSON, timestamp)
 			if err != nil {
 				fmt.Printf("Error saving action to database: %v\n", err)

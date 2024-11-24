@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Load environment variables from .env file
+if [ -f .env ]; then
+  export $(cat .env | xargs)
+fi
+
 # Parse command line arguments for nuking data
 NUKE=false
 while getopts "n" opt; do
@@ -30,7 +35,7 @@ else
 fi
 
 # Start Docker container
-echo "Starting PostgreSQL with TimescaleDB..."
+echo "Starting PostgreSQL..."
 docker-compose up -d
 
 # Wait for the database to be ready
@@ -40,7 +45,7 @@ sleep 10
 # Create database schema
 echo "Creating database schema..."
 # Create schema if needed
-docker exec -i timescaledb psql -U postgres -d blockchain < scripts/schema.sql
+docker exec -i postgres psql -U "${DB_USER:-postgres}" -d "${DB_NAME:-nuklaivm}" < scripts/schema.sql
 
 # Build and start the Go application
 echo "Building the Go application..."

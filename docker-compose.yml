@@ -1,7 +1,7 @@
 services:
   postgres:
-    image: timescale/timescaledb:latest-pg14
-    container_name: timescaledb
+    image: postgres:14
+    container_name: postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
