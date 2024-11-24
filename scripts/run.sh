@@ -36,11 +36,13 @@ fi
 
 # Start Docker container
 echo "Starting PostgreSQL..."
-docker-compose up -d
+docker-compose --env-file .env up -d
 
-# Wait for the database to be ready
-echo "Waiting for PostgreSQL to start..."
-sleep 10
+echo "Waiting for PostgreSQL to become ready..."
+# Wait until PostgreSQL is ready to accept connections
+until docker exec -i postgres pg_isready -U ${DB_USER:-postgres} > /dev/null 2>&1; do
+  sleep 2
+done
 
 # Create database schema
 echo "Creating database schema..."

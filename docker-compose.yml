@@ -3,13 +3,63 @@ services:
     image: postgres:14
     container_name: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: blockchain
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'nuklaivm'
     ports:
       - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./certs:/etc/postgresql/certs
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        echo "Starting PostgreSQL setup..."
+
+        # Ensure PostgreSQL data directory is initialized
+        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+          echo "Initializing PostgreSQL data directory..."
+          su postgres -c "initdb -D /var/lib/postgresql/data"
+        fi
+
+        # Generate SSL certificates if not present
+        if [ ! -f /etc/postgresql/certs/server.crt ]; then
+          echo "Generating SSL certificates..."
+          mkdir -p /etc/postgresql/certs
+          openssl req -new -x509 -nodes -days 365 \
+            -keyout /etc/postgresql/certs/server.key \
+            -out /etc/postgresql/certs/server.crt \
+            -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+          chmod 600 /etc/postgresql/certs/server.key
+          chown -R postgres:postgres /etc/postgresql/certs
+          echo "SSL certificates generated."
+        fi
+
+        # Add both SSL and non-SSL rules to pg_hba.conf
+        echo "hostssl all all 0.0.0.0/0 scram-sha-256" >> /var/lib/postgresql/data/pg_hba.conf
+        echo "host all all 0.0.0.0/0 md5" >> /var/lib/postgresql/data/pg_hba.conf
+
+        # Start PostgreSQL in the background to allow commands
+        su postgres -c "pg_ctl -D /var/lib/postgresql/data -l /var/lib/postgresql/data/logfile start"
+
+        # Set the password for the postgres user
+        echo "Setting password for postgres user..."
+        su postgres -c "psql -c \"ALTER USER postgres WITH PASSWORD 'postgres'\""
+
+        # Reload PostgreSQL configuration
+        su postgres -c "pg_ctl -D /var/lib/postgresql/data reload"
+
+        # Create the database if it doesn't exist
+        su postgres -c "psql -c 'CREATE DATABASE nuklaivm'"
+
+        # Stop the background server
+        su postgres -c "pg_ctl -D /var/lib/postgresql/data stop"
+
+        # Start PostgreSQL as the main process
+        exec su postgres -c "postgres -c ssl=on \
+          -c ssl_cert_file=/etc/postgresql/certs/server.crt \
+          -c ssl_key_file=/etc/postgresql/certs/server.key"
     restart: always
 
 volumes:

@@ -36,6 +36,14 @@ DATABASE_URL="postgres://postgres:postgres@localhost:5432/blockchain?sslmode=dis
 
 ### Step 3: Run the Program
 
+Copy the .env.example file:
+
+```sh
+cp .env.example .env
+```
+
+Note that if you modify the values of `DB_USER`, `DB_PASSWORD` or `DB_NAME`, make sure to also update your docker-compose.yml file accordingly under the `environment` and `entrypoint` section.
+
 Run the setup script to initialize the database and start the servers:
 
 ```sh
