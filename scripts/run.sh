@@ -44,11 +44,6 @@ until docker exec -i postgres pg_isready -U ${DB_USER:-postgres} > /dev/null 2>&
   sleep 2
 done
 
-# Create database schema
-echo "Creating database schema..."
-# Create schema if needed
-docker exec -i postgres psql -U "${DB_USER:-postgres}" -d "${DB_NAME:-nuklaivm}" < scripts/schema.sql
-
 # Build and start the Go application
 echo "Building the Go application..."
 go build -o bin/nuklaivm-subscriber main.go
