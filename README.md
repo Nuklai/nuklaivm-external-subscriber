@@ -70,6 +70,13 @@ The REST API is available at `http://localhost:8080`.
 
 ### REST API Endpoints
 
+### Health Endpoint
+
+- **Check health status**
+  - **Endpoint**: `/health`
+  - **Description**: Check the health status of the subscriber
+  - **Example**: `curl http://localhost:8080/health`
+
 #### Block Endpoints
 
 - **Get Block by Height or Hash**

@@ -29,7 +29,10 @@ func main() {
 	// Setup Gin router
 	r := gin.Default()
 
-	// Endpoint registration
+	// Health endpoint
+	r.GET("/health", api.HealthCheck())
+
+	// Other endpoints
 	r.GET("/genesis", api.GetGenesisData(database))
 	r.GET("/blocks", api.GetAllBlocks(database))
 	r.GET("/blocks/:identifier", api.GetBlock(database)) // Fetch by block height or hash
