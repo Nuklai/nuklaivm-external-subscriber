@@ -15,10 +15,6 @@ func InitDB(connStr string) (*sql.DB, error) {
 		return nil, fmt.Errorf("error connecting to the database: %w", err)
 	}
 
-	if err = db.Ping(); err != nil {
-		return nil, fmt.Errorf("error pinging the database: %w", err)
-	}
-
 	log.Println("Database connection established")
 
 	// Ensure schema is created
