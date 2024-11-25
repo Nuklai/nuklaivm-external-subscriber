@@ -37,7 +37,7 @@
           "value": "${ENVIRONMENT}"
         },
         {
-          "name": "DB_SSLMODE",
+          "name": "DB_SSL_MODE",
           "value": "require"
         }
       ],
