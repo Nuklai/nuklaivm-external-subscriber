@@ -11,8 +11,8 @@
   "containerDefinitions": [
     {
       "name": "${APPLICATION}",
-      "cpu": 256,
-      "memory": 2048,
+      "cpu": "${TASK_CPU}",
+      "memory": "${TASK_MEMORY}",
       "linuxParameters": {
         "initProcessEnabled": true
       },
