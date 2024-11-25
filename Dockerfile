@@ -11,9 +11,6 @@ WORKDIR /go/src/app
 # Copy the Go application source code
 COPY . .
 
-# Copy the startup script
-COPY ./infra/scripts/startup.sh build/
-
 # Build the application
 RUN go mod tidy && go build -o build/subscriber main.go
 
@@ -31,11 +28,9 @@ COPY --from=builder --chown=nuklai:nuklai /go/src/app/build /app
 
 # Set permissions and ownership
 USER nuklai
-RUN chmod a+x /app/startup.sh
 
 # Set the working directory and entry point
 WORKDIR /app
-ENTRYPOINT [ "/app/startup.sh" ]
 CMD [ "/app/subscriber" ]
 
 # Expose necessary ports
