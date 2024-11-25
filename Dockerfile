@@ -1,26 +1,46 @@
-#build stage
-FROM golang:alpine AS builder
+# Build stage
+FROM golang:1.22.5 AS builder
 
-RUN apk update && apk add --no-cache libc-dev make bash
-RUN apk add --virtual build-dependencies build-base
+# Install required dependencies
+RUN apt-get update && apt-get install -y \
+    gcc libc-dev bash make git
+
+# Set the working directory
 WORKDIR /go/src/app
-# Copy the Go application
+
+# Copy the Go application source code
 COPY . .
+
+# Copy the startup script
 COPY ./infra/scripts/startup.sh build/
-# Build the Go application
-RUN go build -o build/subscriber main.go
 
+# Build the application
+RUN go mod tidy && go build -o build/subscriber main.go
 
-#final stage
-FROM alpine:latest
-RUN apk update && apk add --no-cache bash
-RUN addgroup -S nuklai && adduser -S nuklai -G nuklai
-COPY --from=builder --chown=nuklai /go/src/app/build /app
+# Final stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y bash libc6 libgcc1 libstdc++6 && apt-get clean
+
+# Create a new user and group
+RUN groupadd -r nuklai && useradd --no-log-init -r -g nuklai nuklai
+
+# Copy the build artifacts from the builder stage
+COPY --from=builder --chown=nuklai:nuklai /go/src/app/build /app
+
+# Set permissions and ownership
 USER nuklai
 RUN chmod a+x /app/startup.sh
+
+# Set the working directory and entry point
+WORKDIR /app
 ENTRYPOINT [ "/app/startup.sh" ]
-LABEL Name=subscriber
+CMD [ "/app/subscriber" ]
+
+# Expose necessary ports
 EXPOSE 8080
 EXPOSE 50051
-WORKDIR /app
-CMD [ "/app/subscriber" ]
+
+# Metadata
+LABEL Name=subscriber
