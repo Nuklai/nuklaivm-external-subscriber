@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 )
 
@@ -16,9 +17,12 @@ func GetDatabaseURL() string {
 	dbName := getEnv("DB_NAME", "nuklaivm")
 	sslMode := getEnv("DB_SSL_MODE", "disable")
 
+	// Encode password to handle special characters
+	encodedPassword := url.QueryEscape(password)
+
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		user, password, host, port, dbName, sslMode,
+		user, encodedPassword, host, port, dbName, sslMode,
 	)
 }
 
