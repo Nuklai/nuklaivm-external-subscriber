@@ -25,6 +25,11 @@
           "protocol": "tcp",
           "containerPort": "${API_PORT}",
           "hostPort": "${API_PORT}"
+        },
+        {
+          "protocol": "tcp",
+          "containerPort": "${RPC_PORT}",
+          "hostPort": "${RPC_PORT}"
         }
       ],
       "environment": [
