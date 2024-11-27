@@ -51,6 +51,7 @@ func StartGRPCServer(db *sql.DB, port string) {
 }
 
 // Initialize receives genesis data for initialization and saves it to the database
+// Initialize receives genesis data for initialization and saves it to the database
 func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*emptypb.Empty, error) {
 	fmt.Println("Initializing External Subscriber with genesis data...")
 
@@ -59,14 +60,23 @@ func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*em
 	var parsedGenesis map[string]interface{}
 	if err := json.Unmarshal(genesisData, &parsedGenesis); err != nil {
 		fmt.Println("Error parsing genesis data:", err)
-	} else {
-		fmt.Printf("Genesis Data (parsed): %v\n", parsedGenesis)
+		return nil, err
 	}
 
-	// Save genesis data to database
-	_, err := s.db.Exec(`INSERT INTO genesis_data (data) VALUES ($1::json) ON CONFLICT DO NOTHING`, string(genesisData))
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Remove existing genesis data
+	_, err := s.db.Exec(`DELETE FROM genesis_data`)
 	if err != nil {
-		fmt.Printf("Error saving genesis data to database: %v\n", err)
+		fmt.Printf("Error deleting old genesis data from database: %v\n", err)
+	}
+
+	// Save new genesis data to the database
+	_, err = s.db.Exec(`INSERT INTO genesis_data (data) VALUES ($1::json)`, string(genesisData))
+	if err != nil {
+		fmt.Printf("Error saving new genesis data to database: %v\n", err)
+		return nil, err
 	}
 
 	// Create parser from genesis bytes
@@ -77,10 +87,12 @@ func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*em
 	}
 	s.parser = parser
 
+	fmt.Println("Genesis data initialized successfully.")
 	return &emptypb.Empty{}, nil
 }
 
 // AcceptBlock processes a new block, saves relevant data to the database, and stores transactions and actions
+// AcceptBlock processes a new block, removes all data from subsequent blocks, and saves the new block's data
 func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptypb.Empty, error) {
 	fmt.Println("Received a new block:")
 
@@ -100,21 +112,46 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	stateRoot := blk.StateRoot.String()
 	unitPrices := executedBlock.UnitPrices.String()
 	timestamp := time.UnixMilli(blk.Tmstmp).Format(time.RFC3339)
+	blockHeight := blk.Hght
 
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Save block data to the database
+	// Remove all data for blocks with height >= the current block height
+	_, err = s.db.Exec(`DELETE FROM actions WHERE tx_hash IN (
+		SELECT tx_hash FROM transactions WHERE block_hash IN (
+			SELECT block_hash FROM blocks WHERE block_height >= $1
+		)
+	)`, blockHeight)
+	if err != nil {
+		fmt.Printf("Error deleting actions for blocks: %v\n", err)
+	}
+
+	_, err = s.db.Exec(`DELETE FROM transactions WHERE block_hash IN (
+		SELECT block_hash FROM blocks WHERE block_height >= $1
+	)`, blockHeight)
+	if err != nil {
+		fmt.Printf("Error deleting transactions for blocks: %v\n", err)
+	}
+
+	_, err = s.db.Exec(`DELETE FROM blocks WHERE block_height >= $1`, blockHeight)
+	if err != nil {
+		fmt.Printf("Error deleting blocks: %v\n", err)
+	}
+
+	// Save the new block data to the database
 	_, err = s.db.Exec(`INSERT INTO blocks (block_height, block_hash, parent_block_hash, state_root, timestamp, unit_prices)
-		VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (block_height) DO NOTHING`,
-		blk.Hght, blockID, parentID, stateRoot, timestamp, unitPrices)
+		VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (block_height) DO UPDATE
+		SET block_hash = EXCLUDED.block_hash, parent_block_hash = EXCLUDED.parent_block_hash,
+		    state_root = EXCLUDED.state_root, timestamp = EXCLUDED.timestamp, unit_prices = EXCLUDED.unit_prices`,
+		blockHeight, blockID, parentID, stateRoot, timestamp, unitPrices)
 	if err != nil {
 		fmt.Printf("Error saving block to database: %v\n", err)
 		return &emptypb.Empty{}, nil
 	}
 
-	fmt.Printf("Block Details: ID: %s, ParentID: %s, StateRoot: %s, Height: %d\n", blockID, parentID, stateRoot, blk.Hght)
-	fmt.Printf("Transactions in block %d: %d\n", blk.Hght, len(blk.Txs))
+	fmt.Printf("Block Details: ID: %s, ParentID: %s, StateRoot: %s, Height: %d\n", blockID, parentID, stateRoot, blockHeight)
+	fmt.Printf("Transactions in block %d: %d\n", blockHeight, len(blk.Txs))
 
 	for i, tx := range blk.Txs {
 		txID := tx.ID().String()
@@ -148,7 +185,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 
 		// Save transaction to the database
 		_, err := s.db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp)
-			VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8) ON CONFLICT (tx_hash) DO NOTHING`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8)`,
 			txID, blockID, sponsor, tx.MaxFee(), success, fee, outputs, timestamp)
 		if err != nil {
 			fmt.Printf("Error saving transaction to database: %v\n", err)
@@ -182,7 +219,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 
 			// Save each action to the actions table
 			_, err = s.db.Exec(`INSERT INTO actions (tx_hash, action_type, action_details, timestamp)
-				VALUES ($1, $2, $3::json, $4) ON CONFLICT (tx_hash) DO NOTHING`,
+				VALUES ($1, $2, $3::json, $4)`,
 				txID, actionType, actionDetailsJSON, timestamp)
 			if err != nil {
 				fmt.Printf("Error saving action to database: %v\n", err)
