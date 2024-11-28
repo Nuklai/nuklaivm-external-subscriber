@@ -1,16 +1,27 @@
+networks:
+  nuklaivm-network:
+    external: true
+
 services:
-  postgres:
+  nuklaivm-postgres:
     image: postgres:14
-    container_name: postgres
+    container_name: nuklaivm-postgres
     environment:
-      POSTGRES_USER: 'postgres'
-      POSTGRES_PASSWORD: 'postgres'
-      POSTGRES_DB: 'nuklaivm'
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "nuklaivm"
     ports:
-      - '5432:5432'
+      - "5432:5432"
+    networks:
+      - nuklaivm-network
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./certs:/etc/postgresql/certs
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
     entrypoint:
       - /bin/bash
       - -c
@@ -60,6 +71,29 @@ services:
         exec su postgres -c "postgres -c ssl=on \
           -c ssl_cert_file=/etc/postgresql/certs/server.crt \
           -c ssl_key_file=/etc/postgresql/certs/server.key"
+    restart: always
+
+  nuklaivm-subscriber:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nuklaivm-subscriber
+    networks:
+      - nuklaivm-network
+    depends_on:
+      nuklaivm-postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: nuklaivm-postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: nuklaivm
+      DB_SSLMODE: require
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    command: ["/app/subscriber"]
     restart: always
 
 volumes:

@@ -44,23 +44,25 @@ cp .env.example .env
 
 Note that if you modify the values of `DB_USER`, `DB_PASSWORD` or `DB_NAME`, make sure to also update your docker-compose.yml file accordingly under the `environment` and `entrypoint` section.
 
-Run the setup script to initialize the database and start the servers:
+Run the setup script to initialize the database and start the servers.
+
+Run the postgres in docker and subscriber natively:
 
 ```sh
 ./scripts/run.sh
 ```
 
-This script:
-
-- Starts a PostgreSQL container with TimescaleDB using Docker Compose.
-- Sets up database tables and indexes.
-- Builds and runs the Go application, starting both the gRPC and REST API servers.
-
-For a fresh start (removing old data), use:
+Run the postgres in docker and subscriber in docker as well:
 
 ```sh
-./scripts/run.sh -n
+./scripts/run.sh -d
 ```
+
+This script:
+
+- Starts a PostgreSQL container using Docker Compose.
+- Sets up database tables and indexes.
+- Builds and runs the Go application, starting both the gRPC and REST API servers.
 
 ### Step 4: Access the REST API
 
