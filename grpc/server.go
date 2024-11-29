@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/hypersdk/codec"
 	pb "github.com/ava-labs/hypersdk/proto/pb/externalsubscriber"
 	"github.com/nuklai/nuklaivm/vm"
+	"github.com/nuklai/nuklaivm/actions"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -119,9 +120,18 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	for i, tx := range blk.Txs {
 		txID := tx.ID().String()
 		sponsor := tx.Sponsor().String()
+		sender := tx.Auth.Actor().String()
+		receiver := ""
 		fee := uint64(0)
 		outputs := "{}"
 		success := false
+
+	for _, action := range tx.Actions {
+        if transfer, ok := action.(*actions.Transfer); ok {
+            receiver = transfer.To.String()
+            break
+        }
+    }
 
 		if i < len(executedBlock.Results) {
 			result := executedBlock.Results[i]
@@ -147,9 +157,9 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		fmt.Printf("\tOutputs: %v\n", outputs)
 
 		// Save transaction to the database
-		_, err := s.db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp)
-			VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8) ON CONFLICT (tx_hash) DO NOTHING`,
-			txID, blockID, sponsor, tx.MaxFee(), success, fee, outputs, timestamp)
+		_, err := s.db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, sender, receiver, max_fee, success, fee, outputs, timestamp)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::json, $10) ON CONFLICT (tx_hash) DO NOTHING`,
+			txID, blockID, sponsor, sender, receiver, tx.MaxFee(), success, fee, outputs, timestamp)
 		if err != nil {
 			fmt.Printf("Error saving transaction to database: %v\n", err)
 			continue

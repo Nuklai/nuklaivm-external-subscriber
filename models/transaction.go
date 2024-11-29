@@ -12,6 +12,8 @@ type Transaction struct {
 	TxHash    string                 `json:"TxHash"`
 	BlockHash string                 `json:"BlockHash"`
 	Sponsor   string                 `json:"Sponsor"`
+	Sender    string                 `json:"Sender"`
+    Receiver  string                 `json:"Receiver"`
 	MaxFee    float64                `json:"MaxFee"`
 	Success   bool                   `json:"Success"`
 	Fee       uint64                 `json:"Fee"`
@@ -31,7 +33,7 @@ func FetchAllTransactions(db *sql.DB, limit, offset string) ([]Transaction, erro
 	for rows.Next() {
 		var tx Transaction
 		var outputsJSON []byte
-		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp); err != nil {
+		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.Sender, &tx.Receiver, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(outputsJSON, &tx.Outputs); err != nil {
@@ -49,7 +51,7 @@ func FetchTransactionByHash(db *sql.DB, txHash string) (Transaction, error) {
 	var outputsJSON []byte
 
 	err := db.QueryRow(`SELECT * FROM transactions WHERE tx_hash = $1`, txHash).Scan(
-		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp)
+		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.Sender, &tx.Receiver, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp)
 	if err != nil {
 		return tx, err
 	}
@@ -68,7 +70,7 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
 		// blockIdentifier is a block height
 		query = `
-			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.max_fee, transactions.success, transactions.fee, transactions.outputs, transactions.timestamp
+			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.sender, transactions.receiver, transactions.max_fee, transactions.success, transactions.fee, transactions.outputs, transactions.timestamp
 			FROM transactions
 			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
 			WHERE blocks.block_height = $1`
@@ -97,7 +99,7 @@ func scanTransactions(rows *sql.Rows) ([]Transaction, error) {
 	for rows.Next() {
 		var tx Transaction
 		var outputsJSON []byte
-		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp); err != nil {
+		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.Sender, &tx.Receiver, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(outputsJSON, &tx.Outputs); err != nil {

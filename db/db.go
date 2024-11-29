@@ -47,6 +47,8 @@ func createSchema(db *sql.DB) error {
 		tx_hash TEXT UNIQUE NOT NULL,
 		block_hash TEXT,
 		sponsor TEXT,
+		sender TEXT NOT NULL,
+    	receiver TEXT, 
 		max_fee NUMERIC,
 		success BOOLEAN,
 		fee NUMERIC,
@@ -72,6 +74,8 @@ func createSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_tx_hash ON transactions(tx_hash);
 	CREATE INDEX IF NOT EXISTS idx_transactions_block_hash ON transactions(block_hash);
 	CREATE INDEX IF NOT EXISTS idx_sponsor ON transactions(sponsor);
+	CREATE INDEX IF NOT EXISTS idx_sender ON transactions(sender);
+	CREATE INDEX IF NOT EXISTS idx_receiver ON transactions(receiver);
 	CREATE INDEX IF NOT EXISTS idx_action_type ON actions(action_type);
 	`
 
