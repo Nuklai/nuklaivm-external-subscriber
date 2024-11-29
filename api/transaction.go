@@ -39,6 +39,30 @@ func GetTransactionByHash(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+// GetTransactionsByAddress retrieves transactions from psql by address when address is either (sender or receiver)
+func GetTransactionsByAddress(db *sql.DB) gin.HandlerFunc {
+   return func(c *gin.Context) {
+       address := c.Param("address") 
+       if len(address) == 0 {
+           c.JSON(http.StatusBadRequest, gin.H{"error": "Address parameter is required"})
+           return
+       }
+
+       transactions, err := models.FetchTransactionsByAddress(db, address)
+       if err != nil {
+           c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transactions"}) 
+           return
+       }
+
+       if len(transactions) == 0 {
+           c.JSON(http.StatusNotFound, gin.H{"error": "No transactions found for address"})
+           return
+       }
+
+       c.JSON(http.StatusOK, transactions)
+   }
+}
+
 // GetTransactionsByBlock retrieves transactions associated with a block by height or hash
 func GetTransactionsByBlock(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

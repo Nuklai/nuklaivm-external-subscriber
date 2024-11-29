@@ -39,6 +39,7 @@ func main() {
 	r.GET("/transactions", api.GetAllTransactions(database))
 	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))            // Fetch by transaction hash
 	r.GET("/transactions/block/:identifier", api.GetTransactionsByBlock(database)) // Fetch transactions by block height or hash
+	r.GET("/address/:address/transactions", api.GetTransactionsByAddress(database)) // Fetch transactions by address
 	r.GET("/actions", api.GetAllActions(database))
 	r.GET("/actions/:tx_hash", api.GetActionsByTransactionHash(database)) // Fetch actions by transaction hash
 	r.GET("/actions/block/:identifier", api.GetActionsByBlock(database))  // Fetch actions by block height or hash

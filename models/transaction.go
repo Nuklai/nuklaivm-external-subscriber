@@ -92,6 +92,26 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	return scanTransactions(rows)
 }
 
+// FetchTransactionsByAddress retrieves transactions from psql by address when address is either (sender or receiver)
+func FetchTransactionsByAddress(db *sql.DB, address string) ([]Transaction, error) {
+    query := `
+        SELECT transactions.id, transactions.tx_hash, transactions.block_hash, 
+        transactions.sponsor, transactions.sender, transactions.receiver,
+        transactions.max_fee, transactions.success, transactions.fee,
+        transactions.outputs, transactions.timestamp
+        FROM transactions 
+        INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
+        WHERE transactions.sender = $1 OR transactions.receiver = $1 
+        ORDER BY transactions.timestamp DESC`
+        
+    rows, err := db.Query(query, address)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    return scanTransactions(rows)
+}
+
 // Helper function to scan transaction rows and unmarshal outputs
 func scanTransactions(rows *sql.Rows) ([]Transaction, error) {
 	var transactions []Transaction
