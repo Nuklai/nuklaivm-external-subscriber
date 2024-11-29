@@ -26,10 +26,11 @@ ensure_network() {
   fi
 }
 
+ensure_network
+
 if [ "$DOCKER_MODE" = true ]; then
   # Run everything in Docker
   echo "Running everything in Docker mode..."
-  ensure_network
   docker-compose up --build -d
   echo "All services are running in Docker."
   docker container logs -f nuklaivm-subscriber
