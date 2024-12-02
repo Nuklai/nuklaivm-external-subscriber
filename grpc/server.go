@@ -16,6 +16,7 @@ import (
 	pb "github.com/ava-labs/hypersdk/proto/pb/externalsubscriber"
 	"github.com/nuklai/nuklaivm/vm"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -41,7 +42,8 @@ func StartGRPCServer(db *sql.DB, port string) {
 		log.Fatalf("Failed to listen on port %s: %v", port, err)
 	}
 
-	grpcServer := grpc.NewServer()
+	// Use insecure credentials to allow plaintext communication
+	grpcServer := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
 
 	// Register your ExternalSubscriber service
 	pb.RegisterExternalSubscriberServer(grpcServer, &Server{db: db})
