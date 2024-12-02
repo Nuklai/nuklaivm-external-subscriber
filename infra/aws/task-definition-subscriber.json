@@ -1,6 +1,6 @@
 {
-	"cpu": "${TASK_CPU}",
-	"memory": "${TASK_MEMORY}",
+  "cpu": "${TASK_CPU}",
+  "memory": "${TASK_MEMORY}",
   "volumes": [],
   "networkMode": "awsvpc",
   "family": "${PRODUCT}-${APPLICATION}-${ENVIRONMENT}",
@@ -66,6 +66,10 @@
         {
           "name": "DB_PASSWORD",
           "valueFrom": "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/${ENVIRONMENT}/${PRODUCT}/${APPLICATION}/db_password"
+        },
+        {
+          "name": "GRPC_WHITELISTED_BLOCKCHAIN_NODES",
+          "valueFrom": "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/${ENVIRONMENT}/${PRODUCT}/${APPLICATION}/grpc_whitelisted_blockchain_nodes"
         }
       ],
       "logConfiguration": {

@@ -33,6 +33,9 @@ type Server struct {
 
 // startGRPCServer starts the gRPC server for receiving block data
 func StartGRPCServer(db *sql.DB, port string) {
+	// Load the whitelist
+	LoadWhitelist()
+
 	// Ensure the port has a colon prefix
 	if !strings.HasPrefix(port, ":") {
 		port = ":" + port
@@ -44,7 +47,11 @@ func StartGRPCServer(db *sql.DB, port string) {
 	}
 
 	// Use insecure credentials to allow plaintext communication
-	grpcServer := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	serverOptions := []grpc.ServerOption{
+		grpc.Creds(insecure.NewCredentials()),
+		grpc.UnaryInterceptor(UnaryInterceptor), // Attach the interceptor
+	}
+	grpcServer := grpc.NewServer(serverOptions...)
 
 	// Register your ExternalSubscriber service
 	pb.RegisterExternalSubscriberServer(grpcServer, &Server{db: db})
