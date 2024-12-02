@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/url"
 	"os"
@@ -30,25 +31,33 @@ func GetDatabaseURL() string {
 
 // GetWhitelistIPs retrieves the list of whitelisted IPs from the environment variable
 // and resolves domain names to IPs.
-func GetWhitelistIPs() []string {
+// GetWhitelistIPs retrieves the list of whitelisted IPs and CIDR ranges
+func GetWhitelistIPs() ([]string, []string) {
 	ipList := getEnv("GRPC_WHITELISTED_BLOCKCHAIN_NODES", "127.0.0.1,localhost,::1")
-	entries := strings.Split(ipList, ",") // Split by comma
+	entries := strings.Split(ipList, ",")
 
-	whitelist := []string{}
-	defaultIPs := []string{"127.0.0.1", "localhost", "::1"} // Always include these
+	whitelistIPs := []string{}
+	whitelistCIDRs := []string{}
+	defaultEntries := []string{"127.0.0.1", "localhost", "::1"}
 
-	// Resolve domain names and add IPs to the whitelist
-	for _, entry := range append(defaultIPs, entries...) {
+	// Combine default entries and user-provided entries
+	for _, entry := range append(defaultEntries, entries...) {
 		entry = strings.TrimSpace(entry)
-		ips, err := resolveToIPs(entry)
-		if err != nil {
-			// Log the error and skip unresolved entries
-			continue
+		if strings.Contains(entry, "/") {
+			// CIDR range
+			whitelistCIDRs = append(whitelistCIDRs, entry)
+		} else {
+			// IP or domain
+			ips, err := resolveToIPs(entry)
+			if err == nil {
+				whitelistIPs = append(whitelistIPs, ips...)
+			} else {
+				log.Printf("Failed to resolve: %s, skipping", entry)
+			}
 		}
-		whitelist = append(whitelist, ips...)
 	}
 
-	return uniqueStrings(whitelist) // Ensure no duplicates
+	return uniqueStrings(whitelistIPs), uniqueStrings(whitelistCIDRs)
 }
 
 // getEnv retrieves the value of the environment variable named by the key.
