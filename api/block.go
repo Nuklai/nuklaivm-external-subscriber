@@ -9,19 +9,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetAllBlocks retrieves all blocks with pagination
+// GetAllBlocks retrieves all blocks with pagination and total count
 func GetAllBlocks(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
 
+		// Get total count of blocks
+		var totalCount int
+		err := db.QueryRow(`SELECT COUNT(*) FROM blocks`).Scan(&totalCount)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count blocks"})
+			return
+		}
+
+		// Fetch paginated blocks
 		blocks, err := models.FetchAllBlocks(db, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve blocks"})
 			return
 		}
 
-		c.JSON(http.StatusOK, blocks)
+		// Return response with counter
+		c.JSON(http.StatusOK, gin.H{
+			"counter": totalCount,
+			"items":   blocks,
+		})
 	}
 }
 

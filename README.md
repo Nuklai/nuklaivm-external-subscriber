@@ -173,15 +173,18 @@ The REST API is available at `http://localhost:8080`.
   - **Output**:
 
     ```bash
-      {
-        "ID": 832,
-        "BlockHeight": 416,
-        "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
-        "ParentBlock": "2AHQ7qbehvuYJ2sDB8Wgwz5PMyJx2BejHhJZa292KmbXw3Te9R",
-        "StateRoot": "6jGeT1cD6SopVAcc13yyJ8VMLFdiPh6upL3BAoBv1HGPUUuUZ",
-        "Timestamp": "2024-12-02T10:22:50Z",
-        "UnitPrices": "(Bandwidth=100, Compute=100, Storage(Read)=100, Storage(Allocate)=100, Storage(Write)=100)"
-      }
+    {
+      "BlockHeight": 73,
+      "BlockHash": "p5jkYp2TfK1nH7WzXmeDypNKmtnMoRpNLadYCDNYoRyrTvxZS",
+      "ParentBlockHash": "6bMS7Gi5u4SRfHUrboQcjhvpEjMNaNpFU4s7EAzdqi5Vqcyrj",
+      "StateRoot": "oz2McvCZbS8gfp9sFjZfAFKawZW8TdrGjwwETfPpcEro26mTh",
+      "BlockSize": 307,
+      "TxCount": 1,
+      "TotalFee": 48500,
+      "AvgTxSize": 307,
+      "UniqueParticipants": 1,
+      "Timestamp": "2024-12-02T11:47:09Z"
+    }
     ```
 
 - **Get All Blocks**
@@ -194,26 +197,35 @@ The REST API is available at `http://localhost:8080`.
   - **Output**:
 
     ```bash
-    [
-      {
-        "ID": 1988,
-        "BlockHeight": 994,
-        "BlockHash": "iRex7gTFqNQKfhMn3Voqex2vLaJXfqQ5xg3xhxqpuc9Rn6LUy",
-        "ParentBlock": "NSsynENZfcbXges2JuFqSgj6SDGMTq7jCgFqXnjqj9i74YAwa",
-        "StateRoot": "taSygsQcSb8y1EMwwEXkUvM9Dz5SFDkf3Rz6YFtcwAxQbZmUk",
-        "Timestamp": "2024-12-02T10:30:11Z",
-        "UnitPrices": "(Bandwidth=100, Compute=100, Storage(Read)=100, Storage(Allocate)=100, Storage(Write)=100)"
-      },
-      {
-        "ID": 1986,
-        "BlockHeight": 993,
-        "BlockHash": "NSsynENZfcbXges2JuFqSgj6SDGMTq7jCgFqXnjqj9i74YAwa",
-        "ParentBlock": "ZNwNGUx9DL4hoSx76wwS2RAUnMj773bGg51bd42oaqgWdxiMg",
-        "StateRoot": "2RizGvY7zGDgNkiXWVvuEhVkGAtydGoB3irSzgFq1qUV41ysLP",
-        "Timestamp": "2024-12-02T10:30:10Z",
-        "UnitPrices": "(Bandwidth=100, Compute=100, Storage(Read)=100, Storage(Allocate)=100, Storage(Write)=100)"
-      }
-    ]
+    {
+      "counter": 73,
+      "items": [
+        {
+          "BlockHeight": 73,
+          "BlockHash": "p5jkYp2TfK1nH7WzXmeDypNKmtnMoRpNLadYCDNYoRyrTvxZS",
+          "ParentBlockHash": "6bMS7Gi5u4SRfHUrboQcjhvpEjMNaNpFU4s7EAzdqi5Vqcyrj",
+          "StateRoot": "oz2McvCZbS8gfp9sFjZfAFKawZW8TdrGjwwETfPpcEro26mTh",
+          "BlockSize": 307,
+          "TxCount": 1,
+          "TotalFee": 48500,
+          "AvgTxSize": 307,
+          "UniqueParticipants": 1,
+          "Timestamp": "2024-12-02T11:47:09Z"
+        },
+        {
+          "BlockHeight": 72,
+          "BlockHash": "6bMS7Gi5u4SRfHUrboQcjhvpEjMNaNpFU4s7EAzdqi5Vqcyrj",
+          "ParentBlockHash": "fStF9MQQwV7UKQK73Pp4reKBttRGuC1X4sQRoaiB1VTTT1eG3",
+          "StateRoot": "2RuPbB1GejDpXG9pMxmmfUuP3XfLKrjmyNUXKbq8LSm6dALtL7",
+          "BlockSize": 84,
+          "TxCount": 0,
+          "TotalFee": 0,
+          "AvgTxSize": 0,
+          "UniqueParticipants": 0,
+          "Timestamp": "2024-12-02T11:48:12Z"
+        }
+      ]
+    }
     ```
 
 #### Transaction Endpoints
@@ -251,36 +263,39 @@ The REST API is available at `http://localhost:8080`.
   - **Output**:
 
     ```bash
-    [
-      {
-        "ID": 4,
-        "TxHash": "57KRbZ34ypofg839mYuiwRAsN2XdzsoLW7UXoTpdYGHLrMJNX",
-        "BlockHash": "CZP3tAWjARyoyNV18qD9QPfiarNZUbSxqPSEP1rF7ESoBJRWU",
-        "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
-        "MaxFee": 53000,
-        "Success": true,
-        "Fee": 48500,
-        "Outputs": {
-          "receiver_balance": 105000000000,
-          "sender_balance": 852999894999903000
+    {
+      "counter": 2,
+      "items": [
+        {
+          "ID": 4,
+          "TxHash": "2dikBvg99xuS1zvabXHKTu2MGC43Sh89mseCgbRXtRxrYomo4",
+          "BlockHash": "2LrudVbwePsi8GmNWg4qitSEWyBMeSFycaWu3vKaAw6NrVRJ9K",
+          "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "MaxFee": 53000,
+          "Success": true,
+          "Fee": 48500,
+          "Outputs": {
+            "receiver_balance": 15000000000,
+            "sender_balance": 852999984999903000
+          },
+          "Timestamp": "2024-12-02T11:49:59Z"
         },
-        "Timestamp": "2024-12-02T10:32:22Z"
-      },
-      {
-        "ID": 2,
-        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
-        "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
-        "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
-        "MaxFee": 53000,
-        "Success": true,
-        "Fee": 48500,
-        "Outputs": {
-          "receiver_balance": 100000000000,
-          "sender_balance": 852999899999951500
-        },
-        "Timestamp": "2024-12-02T10:22:50Z"
-      }
-    ]
+        {
+          "ID": 2,
+          "TxHash": "68UpaXgNCxiT9xBq4Ja8vb7QKmQhLvWguj5z4Czq86hXZPtb1",
+          "BlockHash": "p5jkYp2TfK1nH7WzXmeDypNKmtnMoRpNLadYCDNYoRyrTvxZS",
+          "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "MaxFee": 53000,
+          "Success": true,
+          "Fee": 48500,
+          "Outputs": {
+            "receiver_balance": 10000000000,
+            "sender_balance": 852999989999951500
+          },
+          "Timestamp": "2024-12-02T11:47:09Z"
+        }
+      ]
+    }
     ```
 
 - **Get Transactions by Block**
@@ -345,32 +360,35 @@ The REST API is available at `http://localhost:8080`.
   - **Output**:
 
     ```bash
-    [
-      {
-        "ID": 4,
-        "TxHash": "57KRbZ34ypofg839mYuiwRAsN2XdzsoLW7UXoTpdYGHLrMJNX",
-        "ActionType": 0,
-        "ActionDetails": {
-          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-          "Memo": "",
-          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
-          "Value": 5000000000
+    {
+      "counter": 2,
+      "items": [
+        {
+          "ID": 4,
+          "TxHash": "2dikBvg99xuS1zvabXHKTu2MGC43Sh89mseCgbRXtRxrYomo4",
+          "ActionType": 0,
+          "ActionDetails": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+            "value": 5000000000
+          },
+          "Timestamp": "2024-12-02T11:49:59Z"
         },
-        "Timestamp": "2024-12-02T10:32:22Z"
-      },
-      {
-        "ID": 2,
-        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
-        "ActionType": 0,
-        "ActionDetails": {
-          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-          "Memo": "",
-          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
-          "Value": 100000000000
-        },
-        "Timestamp": "2024-12-02T10:22:50Z"
-      }
-    ]
+        {
+          "ID": 2,
+          "TxHash": "68UpaXgNCxiT9xBq4Ja8vb7QKmQhLvWguj5z4Czq86hXZPtb1",
+          "ActionType": 0,
+          "ActionDetails": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+            "value": 10000000000
+          },
+          "Timestamp": "2024-12-02T11:47:09Z"
+        }
+      ]
+    }
     ```
 
 - **Get Actions by Block**
