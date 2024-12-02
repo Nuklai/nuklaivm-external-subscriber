@@ -16,6 +16,7 @@ import (
 	pb "github.com/ava-labs/hypersdk/proto/pb/externalsubscriber"
 	"github.com/nuklai/nuklaivm/vm"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -41,7 +42,12 @@ func StartGRPCServer(db *sql.DB, port string) {
 	}
 
 	grpcServer := grpc.NewServer()
+
+	// Register your ExternalSubscriber service
 	pb.RegisterExternalSubscriberServer(grpcServer, &Server{db: db})
+
+	// Enable gRPC reflection for tools like grpcurl
+	reflection.Register(grpcServer)
 
 	fmt.Printf("External Subscriber server is listening on port %s...\n", port)
 	if err := grpcServer.Serve(lis); err != nil {

@@ -315,10 +315,21 @@ The REST API is available at `http://localhost:8080`.
         "MaxFee": 53000,
         "Success": true,
         "Fee": 48500,
-        "Outputs": {
-          "receiver_balance": 100000000000,
-          "sender_balance": 852999899999951500
-        },
+        "Actions": [
+          {
+            "ActionType": 0,
+            "Input": {
+              "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+              "Memo": "",
+              "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+              "Value": 100000000000
+            },
+            "Output": {
+              "receiver_balance": 100000000000,
+              "sender_balance": 852999899999951500
+            }
+          }
+        ],
         "Timestamp": "2024-12-02T10:22:50Z"
       }
     ]
@@ -339,12 +350,16 @@ The REST API is available at `http://localhost:8080`.
         "ID": 2,
         "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
         "ActionType": 0,
-        "ActionDetails": {
+        "Input": {
           "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
           "Memo": "",
           "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
           "Value": 100000000000
         },
+        "Output": {
+          "receiver_balance": 100000000000,
+          "sender_balance": 852999899999951500
+        }
         "Timestamp": "2024-12-02T10:22:50Z"
       }
     ]
