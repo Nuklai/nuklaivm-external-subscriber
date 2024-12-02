@@ -152,9 +152,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		fmt.Println("Database reset and schema re-created successfully.")
 	}
 
-	if len(blk.Txs) > 0 {
-		fmt.Printf("Block Details: Height: %d, Hash: %s, ParentHash: %s, Transactions: %d\n", blockHeight, blockHash, parentHash, len(blk.Txs))
-	}
+	fmt.Printf("Block Details: Height: %d, Hash: %s, ParentHash: %s, Transactions: %d\n", blockHeight, blockHash, parentHash, len(blk.Txs))
 
 	for i, tx := range blk.Txs {
 		txID := tx.ID().String()
