@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -110,9 +109,17 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	blockID := executedBlock.BlockID.String()
 	parentID := blk.Prnt.String()
 	stateRoot := blk.StateRoot.String()
-	unitPrices := executedBlock.UnitPrices.String()
 	timestamp := time.UnixMilli(blk.Tmstmp).Format(time.RFC3339)
 	blockHeight := blk.Hght
+	blockSize := blk.Size()
+	txCount := len(blk.Txs)
+	avgTxSize := 0.0
+	if txCount > 0 {
+		avgTxSize = float64(blockSize) / float64(txCount)
+	}
+
+	uniqueParticipants := make(map[string]struct{})
+	totalFee := uint64(0)
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -137,17 +144,6 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	_, err = s.db.Exec(`DELETE FROM blocks WHERE block_height >= $1`, blockHeight)
 	if err != nil {
 		fmt.Printf("Error deleting blocks: %v\n", err)
-	}
-
-	// Save the new block data to the database
-	_, err = s.db.Exec(`INSERT INTO blocks (block_height, block_hash, parent_block_hash, state_root, timestamp, unit_prices)
-		VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (block_height) DO UPDATE
-		SET block_hash = EXCLUDED.block_hash, parent_block_hash = EXCLUDED.parent_block_hash,
-		    state_root = EXCLUDED.state_root, timestamp = EXCLUDED.timestamp, unit_prices = EXCLUDED.unit_prices`,
-		blockHeight, blockID, parentID, stateRoot, timestamp, unitPrices)
-	if err != nil {
-		fmt.Printf("Error saving block to database: %v\n", err)
-		return &emptypb.Empty{}, nil
 	}
 
 	fmt.Printf("Block Details: ID: %s, ParentID: %s, StateRoot: %s, Height: %d\n", blockID, parentID, stateRoot, blockHeight)
@@ -179,6 +175,8 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		} else {
 			fmt.Printf("Warning: No transaction result found for transaction index %d\n", i)
 		}
+		totalFee += fee
+		uniqueParticipants[sponsor] = struct{}{}
 
 		fmt.Printf("\tTransaction %d: %s\n", i+1, txID)
 		fmt.Printf("\tOutputs: %v\n", outputs)
@@ -198,21 +196,27 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		for j, action := range tx.Actions {
 			actionType := action.GetTypeID()
 
-			// Use reflection to dynamically get field names and values from the action
-			actionValue := reflect.ValueOf(action).Elem()
-			actionDetails := make(map[string]interface{})
+			/*
+				// Use reflection to dynamically get field names and values from the action
+				actionValue := reflect.ValueOf(action).Elem()
+				actionDetails := make(map[string]interface{})
 
-			for i := 0; i < actionValue.NumField(); i++ {
-				field := actionValue.Type().Field(i)
-				fieldName := field.Name
-				fieldValue := actionValue.Field(i).Interface()
-				actionDetails[fieldName] = fieldValue
-			}
+				for i := 0; i < actionValue.NumField(); i++ {
+					field := actionValue.Type().Field(i)
+					fieldName := field.Name
+					fieldValue := actionValue.Field(i).Interface()
+					actionDetails[fieldName] = fieldValue
+				}
 
-			actionDetailsJSON, err := json.Marshal(actionDetails)
-			if err != nil {
-				fmt.Printf("Error marshaling action details: %v\n", err)
-				actionDetailsJSON = []byte("{}")
+				actionDetailsJSON, err := json.Marshal(actionDetails)
+				if err != nil {
+					fmt.Printf("Error marshaling action details: %v\n", err)
+					actionDetailsJSON = []byte("{}")
+				}
+			*/
+			actionDetailsJSON := "{}"
+			if actionDetails, err := json.Marshal(action); err == nil {
+				actionDetailsJSON = string(actionDetails)
 			}
 
 			fmt.Printf("\t\tAction %d: Type: %d, Details: %s\n", j+1, actionType, actionDetailsJSON)
@@ -225,6 +229,26 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 				fmt.Printf("Error saving action to database: %v\n", err)
 			}
 		}
+	}
+
+	// Save the new block data to the database
+	_, err = s.db.Exec(`
+        INSERT INTO blocks (block_height, block_hash, parent_block_hash, state_root, block_size, tx_count, total_fee, avg_tx_size, unique_participants, timestamp)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (block_height) DO UPDATE
+        SET block_hash = EXCLUDED.block_hash,
+            parent_block_hash = EXCLUDED.parent_block_hash,
+            state_root = EXCLUDED.state_root,
+            block_size = EXCLUDED.block_size,
+            tx_count = EXCLUDED.tx_count,
+            total_fee = EXCLUDED.total_fee,
+            avg_tx_size = EXCLUDED.avg_tx_size,
+            unique_participants = EXCLUDED.unique_participants,
+            timestamp = EXCLUDED.timestamp`,
+		blockHeight, blockID, parentID, stateRoot, blockSize, txCount, totalFee, avgTxSize, len(uniqueParticipants), timestamp)
+	if err != nil {
+		fmt.Printf("Error saving block to database: %v\n", err)
+		return &emptypb.Empty{}, nil
 	}
 
 	return &emptypb.Empty{}, nil

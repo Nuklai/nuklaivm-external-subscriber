@@ -33,13 +33,16 @@ func InitDB(connStr string) (*sql.DB, error) {
 func createSchema(db *sql.DB) error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS blocks (
-		id SERIAL PRIMARY KEY,
-		block_height BIGINT UNIQUE NOT NULL,
-		block_hash TEXT NOT NULL,
-		parent_block_hash TEXT,
-		state_root TEXT,
-		timestamp TIMESTAMP NOT NULL,
-		unit_prices TEXT
+			block_height BIGINT PRIMARY KEY,
+			block_hash TEXT NOT NULL,
+			parent_block_hash TEXT,
+			state_root TEXT,
+			block_size INT NOT NULL,
+			tx_count INT NOT NULL,
+			total_fee NUMERIC NOT NULL,
+			avg_tx_size NUMERIC NOT NULL,
+			unique_participants INT NOT NULL,
+			timestamp TIMESTAMP NOT NULL
 	);
 
 	CREATE TABLE IF NOT EXISTS transactions (

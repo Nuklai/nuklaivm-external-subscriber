@@ -75,9 +75,93 @@ The REST API is available at `http://localhost:8080`.
 ### Health Endpoint
 
 - **Check health status**
+
   - **Endpoint**: `/health`
   - **Description**: Check the health status of the subscriber
   - **Example**: `curl http://localhost:8080/health`
+  - **Output**:
+
+    ```bash
+    {
+      "details": {
+        "database": "reachable",
+        "grpc": "reachable"
+      },
+      "status": "ok"
+    }
+    ```
+
+#### Genesis Data Endpoint
+
+- **Get Genesis Data**
+
+  - **Endpoint**: `/genesis`
+  - **Description**: Retrieve the genesis data.
+  - **Example**: `curl http://localhost:8080/genesis`
+  - **Output**:
+
+    ```bash
+    {
+      "customAllocation": [
+        {
+          "address": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "balance": 853000000000000000
+        }
+      ],
+      "emissionBalancer": {
+        "emissionAddress": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+        "maxSupply": 1e+19
+      },
+      "initialRules": {
+        "baseUnits": 1,
+        "chainID": "11111111111111111111111111111111LpoYY",
+        "maxActionsPerTx": 16,
+        "maxBlockUnits": {
+          "bandwidth": 1800000,
+          "compute": 18446744073709552000,
+          "storageAllocate": 18446744073709552000,
+          "storageRead": 18446744073709552000,
+          "storageWrite": 18446744073709552000
+        },
+        "maxOutputsPerAction": 1,
+        "minBlockGap": 250,
+        "minEmptyBlockGap": 750,
+        "minUnitPrice": {
+          "bandwidth": 100,
+          "compute": 100,
+          "storageAllocate": 100,
+          "storageRead": 100,
+          "storageWrite": 100
+        },
+        "networkID": 0,
+        "sponsorStateKeysMaxChunks": [
+          1
+        ],
+        "storageKeyAllocateUnits": 20,
+        "storageKeyReadUnits": 5,
+        "storageKeyWriteUnits": 10,
+        "storageValueAllocateUnits": 5,
+        "storageValueReadUnits": 2,
+        "storageValueWriteUnits": 3,
+        "unitPriceChangeDenominator": {
+          "bandwidth": 48,
+          "compute": 48,
+          "storageAllocate": 48,
+          "storageRead": 48,
+          "storageWrite": 48
+        },
+        "validityWindow": 60000,
+        "windowTargetUnits": {
+          "bandwidth": 18446744073709552000,
+          "compute": 18446744073709552000,
+          "storageAllocate": 18446744073709552000,
+          "storageRead": 18446744073709552000,
+          "storageWrite": 18446744073709552000
+        }
+      },
+      "stateBranchFactor": 16
+    }
+    ```
 
 #### Block Endpoints
 
@@ -86,13 +170,51 @@ The REST API is available at `http://localhost:8080`.
   - **Endpoint**: `/blocks/:identifier`
   - **Description**: Retrieve a block by its height or hash.
   - **Example**: `curl http://localhost:8080/blocks/29` or `curl http://localhost:8080/blocks/block_hash_here`
+  - **Output**:
+
+    ```bash
+      {
+        "ID": 832,
+        "BlockHeight": 416,
+        "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
+        "ParentBlock": "2AHQ7qbehvuYJ2sDB8Wgwz5PMyJx2BejHhJZa292KmbXw3Te9R",
+        "StateRoot": "6jGeT1cD6SopVAcc13yyJ8VMLFdiPh6upL3BAoBv1HGPUUuUZ",
+        "Timestamp": "2024-12-02T10:22:50Z",
+        "UnitPrices": "(Bandwidth=100, Compute=100, Storage(Read)=100, Storage(Allocate)=100, Storage(Write)=100)"
+      }
+    ```
 
 - **Get All Blocks**
+
   - **Endpoint**: `/blocks`
   - **Parameters**:
     - `limit`: Number of blocks to return (default: 10).
     - `offset`: Offset for pagination (default: 0).
-  - **Example**: `curl "http://localhost:8080/blocks?limit=5&offset=0"`
+  - **Example**: `curl "http://localhost:8080/blocks?limit=2&offset=0"`
+  - **Output**:
+
+    ```bash
+    [
+      {
+        "ID": 1988,
+        "BlockHeight": 994,
+        "BlockHash": "iRex7gTFqNQKfhMn3Voqex2vLaJXfqQ5xg3xhxqpuc9Rn6LUy",
+        "ParentBlock": "NSsynENZfcbXges2JuFqSgj6SDGMTq7jCgFqXnjqj9i74YAwa",
+        "StateRoot": "taSygsQcSb8y1EMwwEXkUvM9Dz5SFDkf3Rz6YFtcwAxQbZmUk",
+        "Timestamp": "2024-12-02T10:30:11Z",
+        "UnitPrices": "(Bandwidth=100, Compute=100, Storage(Read)=100, Storage(Allocate)=100, Storage(Write)=100)"
+      },
+      {
+        "ID": 1986,
+        "BlockHeight": 993,
+        "BlockHash": "NSsynENZfcbXges2JuFqSgj6SDGMTq7jCgFqXnjqj9i74YAwa",
+        "ParentBlock": "ZNwNGUx9DL4hoSx76wwS2RAUnMj773bGg51bd42oaqgWdxiMg",
+        "StateRoot": "2RizGvY7zGDgNkiXWVvuEhVkGAtydGoB3irSzgFq1qUV41ysLP",
+        "Timestamp": "2024-12-02T10:30:10Z",
+        "UnitPrices": "(Bandwidth=100, Compute=100, Storage(Read)=100, Storage(Allocate)=100, Storage(Write)=100)"
+      }
+    ]
+    ```
 
 #### Transaction Endpoints
 
@@ -100,6 +222,24 @@ The REST API is available at `http://localhost:8080`.
 
   - **Endpoint**: `/transactions/:tx_hash`
   - **Example**: `curl http://localhost:8080/transactions/tx_hash_here`
+  - **Output**:
+
+    ```bash
+    {
+      "ID": 2,
+      "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+      "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
+      "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+      "MaxFee": 53000,
+      "Success": true,
+      "Fee": 48500,
+      "Outputs": {
+        "receiver_balance": 100000000000,
+        "sender_balance": 852999899999951500
+      },
+      "Timestamp": "2024-12-02T10:22:50Z"
+    }
+    ```
 
 - **Get All Transactions**
 
@@ -107,14 +247,93 @@ The REST API is available at `http://localhost:8080`.
   - **Parameters**:
     - `limit`: Number of transactions to return (default: 10).
     - `offset`: Offset for pagination (default: 0).
-  - **Example**: `curl "http://localhost:8080/transactions?limit=5&offset=0"`
+  - **Example**: `curl "http://localhost:8080/transactions?limit=2&offset=0"`
+  - **Output**:
+
+    ```bash
+    [
+      {
+        "ID": 4,
+        "TxHash": "57KRbZ34ypofg839mYuiwRAsN2XdzsoLW7UXoTpdYGHLrMJNX",
+        "BlockHash": "CZP3tAWjARyoyNV18qD9QPfiarNZUbSxqPSEP1rF7ESoBJRWU",
+        "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+        "MaxFee": 53000,
+        "Success": true,
+        "Fee": 48500,
+        "Outputs": {
+          "receiver_balance": 105000000000,
+          "sender_balance": 852999894999903000
+        },
+        "Timestamp": "2024-12-02T10:32:22Z"
+      },
+      {
+        "ID": 2,
+        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+        "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
+        "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+        "MaxFee": 53000,
+        "Success": true,
+        "Fee": 48500,
+        "Outputs": {
+          "receiver_balance": 100000000000,
+          "sender_balance": 852999899999951500
+        },
+        "Timestamp": "2024-12-02T10:22:50Z"
+      }
+    ]
+    ```
 
 - **Get Transactions by Block**
+
   - **Endpoint**: `/transactions/block/:identifier`
   - **Description**: Retrieve transactions associated with a block, specified by either block height or hash.
   - **Example**: `curl http://localhost:8080/transactions/block/29`
+  - **Output**:
+
+    ```bash
+    [
+      {
+        "ID": 2,
+        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+        "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
+        "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+        "MaxFee": 53000,
+        "Success": true,
+        "Fee": 48500,
+        "Outputs": {
+          "receiver_balance": 100000000000,
+          "sender_balance": 852999899999951500
+        },
+        "Timestamp": "2024-12-02T10:22:50Z"
+      }
+    ]
+    ```
 
 #### Action Endpoints
+
+- **Get Actions by Transaction Hash**
+
+  - **Endpoint**: `/actions/:tx_hash`
+  - **Description**: Retrieve actions associated with a specific transaction hash.
+  - **Example**: `curl http://localhost:8080/actions/tx_hash_here`
+  - **Output**:
+
+    ```bash
+    [
+      {
+        "ID": 2,
+        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+        "ActionType": 0,
+        "ActionDetails": {
+          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+          "Memo": "",
+          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+          "Value": 100000000000
+        },
+        "Timestamp": "2024-12-02T10:22:50Z"
+      }
+    ]
+    ```
 
 - **Get All Actions**
 
@@ -122,25 +341,61 @@ The REST API is available at `http://localhost:8080`.
   - **Parameters**:
     - `limit`: Number of actions to return (default: 10).
     - `offset`: Offset for pagination (default: 0).
-  - **Example**: `curl "http://localhost:8080/actions?limit=5&offset=0"`
+  - **Example**: `curl "http://localhost:8080/actions?limit=2&offset=0"`
+  - **Output**:
 
-- **Get Actions by Transaction Hash**
-
-  - **Endpoint**: `/actions/:tx_hash`
-  - **Description**: Retrieve actions associated with a specific transaction hash.
-  - **Example**: `curl http://localhost:8080/actions/tx_hash_here`
+    ```bash
+    [
+      {
+        "ID": 4,
+        "TxHash": "57KRbZ34ypofg839mYuiwRAsN2XdzsoLW7UXoTpdYGHLrMJNX",
+        "ActionType": 0,
+        "ActionDetails": {
+          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+          "Memo": "",
+          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+          "Value": 5000000000
+        },
+        "Timestamp": "2024-12-02T10:32:22Z"
+      },
+      {
+        "ID": 2,
+        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+        "ActionType": 0,
+        "ActionDetails": {
+          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+          "Memo": "",
+          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+          "Value": 100000000000
+        },
+        "Timestamp": "2024-12-02T10:22:50Z"
+      }
+    ]
+    ```
 
 - **Get Actions by Block**
+
   - **Endpoint**: `/actions/block/:identifier`
   - **Description**: Retrieve actions within a block, specified by either block height or hash.
   - **Example**: `curl http://localhost:8080/actions/block/29`
+  - **Output**:
 
-#### Genesis Data Endpoint
-
-- **Get Genesis Data**
-  - **Endpoint**: `/genesis`
-  - **Description**: Retrieve the genesis data.
-  - **Example**: `curl http://localhost:8080/genesis`
+    ```bash
+    [
+      {
+        "ID": 2,
+        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+        "ActionType": 0,
+        "ActionDetails": {
+          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+          "Memo": "",
+          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+          "Value": 100000000000
+        },
+        "Timestamp": "2024-12-02T10:22:50Z"
+      }
+    ]
+    ```
 
 ### gRPC Server
 

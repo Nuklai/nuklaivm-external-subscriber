@@ -6,13 +6,16 @@ import (
 )
 
 type Block struct {
-	ID              int    `json:"ID"`
-	BlockHeight     int64  `json:"BlockHeight"`
-	BlockHash       string `json:"BlockHash"`
-	ParentBlockHash string `json:"ParentBlock"`
-	StateRoot       string `json:"StateRoot"`
-	Timestamp       string `json:"Timestamp"`
-	UnitPrices      string `json:"UnitPrices"`
+	BlockHeight        int64   `json:"BlockHeight"`
+	BlockHash          string  `json:"BlockHash"`
+	ParentBlockHash    string  `json:"ParentBlockHash"`
+	StateRoot          string  `json:"StateRoot"`
+	BlockSize          int     `json:"BlockSize"`
+	TxCount            int     `json:"TxCount"`
+	TotalFee           float64 `json:"TotalFee"`
+	AvgTxSize          float64 `json:"AvgTxSize"`
+	UniqueParticipants int     `json:"UniqueParticipants"`
+	Timestamp          string  `json:"Timestamp"`
 }
 
 // FetchAllBlocks retrieves blocks from the database with pagination
@@ -26,7 +29,7 @@ func FetchAllBlocks(db *sql.DB, limit, offset string) ([]Block, error) {
 	var blocks []Block
 	for rows.Next() {
 		var block Block
-		if err := rows.Scan(&block.ID, &block.BlockHeight, &block.BlockHash, &block.ParentBlockHash, &block.StateRoot, &block.Timestamp, &block.UnitPrices); err != nil {
+		if err := rows.Scan(&block.BlockHeight, &block.BlockHash, &block.ParentBlockHash, &block.StateRoot, &block.BlockSize, &block.TxCount, &block.TotalFee, &block.AvgTxSize, &block.UniqueParticipants, &block.Timestamp); err != nil {
 			return nil, err
 		}
 		blocks = append(blocks, block)
@@ -49,13 +52,12 @@ func FetchBlock(db *sql.DB, identifier string) (Block, error) {
 
 	// Base query with dynamic WHERE clause
 	query := `
-        SELECT id, block_height, block_hash, parent_block_hash, state_root, timestamp, unit_prices
+        SELECT block_height, block_hash, parent_block_hash, state_root, block_size, tx_count, total_fee, avg_tx_size, unique_participants, timestamp
         FROM blocks
         WHERE ` + whereClause
 
 	// Execute query with identifier as parameter
-	err := db.QueryRow(query, identifier).Scan(
-		&block.ID, &block.BlockHeight, &block.BlockHash, &block.ParentBlockHash, &block.StateRoot, &block.Timestamp, &block.UnitPrices)
+	err := db.QueryRow(query, identifier).Scan(&block.BlockHeight, &block.BlockHash, &block.ParentBlockHash, &block.StateRoot, &block.BlockSize, &block.TxCount, &block.TotalFee, &block.AvgTxSize, &block.UniqueParticipants, &block.Timestamp)
 
 	return block, err
 }
