@@ -101,8 +101,6 @@ func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*em
 
 // AcceptBlock processes a new block, saves relevant data to the database, and stores transactions and actions
 func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptypb.Empty, error) {
-	fmt.Println("Received a new block:")
-
 	blockData := req.GetBlockData()
 
 	// Attempt to unmarshal the executed block using UnmarshalExecutedBlock
