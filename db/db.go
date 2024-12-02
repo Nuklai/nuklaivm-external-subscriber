@@ -22,15 +22,15 @@ func InitDB(connStr string) (*sql.DB, error) {
 	log.Println("Database connection established")
 
 	// Ensure schema is created
-	if err := createSchema(db); err != nil {
+	if err := CreateSchema(db); err != nil {
 		return nil, fmt.Errorf("error creating schema: %w", err)
 	}
 
 	return db, nil
 }
 
-// createSchema creates the database schema if it doesn't already exist
-func createSchema(db *sql.DB) error {
+// CreateSchema creates the database schema if it doesn't already exist
+func CreateSchema(db *sql.DB) error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS blocks (
 			block_height BIGINT PRIMARY KEY,

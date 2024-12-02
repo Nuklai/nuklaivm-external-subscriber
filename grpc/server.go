@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 	pb "github.com/ava-labs/hypersdk/proto/pb/externalsubscriber"
+	subscriberDB "github.com/nuklai/nuklaivm-external-subscriber/db"
 	"github.com/nuklai/nuklaivm/vm"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -99,11 +100,9 @@ func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*em
 }
 
 // AcceptBlock processes a new block, saves relevant data to the database, and stores transactions and actions
-// AcceptBlock processes a new block, removes all data from subsequent blocks, and saves the new block's data
 func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptypb.Empty, error) {
 	fmt.Println("Received a new block:")
 
-	// Extract and print raw BlockData
 	blockData := req.GetBlockData()
 
 	// Attempt to unmarshal the executed block using UnmarshalExecutedBlock
@@ -114,11 +113,11 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	}
 
 	blk := executedBlock.Block
-	blockID := executedBlock.BlockID.String()
-	parentID := blk.Prnt.String()
+	blockHeight := blk.Hght
+	blockHash := executedBlock.BlockID.String()
+	parentHash := blk.Prnt.String()
 	stateRoot := blk.StateRoot.String()
 	timestamp := time.UnixMilli(blk.Tmstmp).Format(time.RFC3339)
-	blockHeight := blk.Hght
 	blockSize := blk.Size()
 	txCount := len(blk.Txs)
 	avgTxSize := 0.0
@@ -132,30 +131,32 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Remove all data for blocks with height >= the current block height
-	_, err = s.db.Exec(`DELETE FROM actions WHERE tx_hash IN (
-		SELECT tx_hash FROM transactions WHERE block_hash IN (
-			SELECT block_hash FROM blocks WHERE block_height >= $1
-		)
-	)`, blockHeight)
-	if err != nil {
-		fmt.Printf("Error deleting actions for blocks: %v\n", err)
+	// If the block height is 1, reset the database schema
+	if blockHeight == 1 {
+		fmt.Println("First block detected (genesis). Resetting the database...")
+
+		// Drop all tables
+		_, err := s.db.Exec(`
+			DROP TABLE IF EXISTS actions, transactions, blocks CASCADE;
+		`)
+		if err != nil {
+			fmt.Printf("Error dropping existing tables: %v\n", err)
+			return &emptypb.Empty{}, nil
+		}
+
+		// Re-create the schema
+		err = subscriberDB.CreateSchema(s.db)
+		if err != nil {
+			fmt.Printf("Error re-creating schema: %v\n", err)
+			return &emptypb.Empty{}, nil
+		}
+
+		fmt.Println("Database reset and schema re-created successfully.")
 	}
 
-	_, err = s.db.Exec(`DELETE FROM transactions WHERE block_hash IN (
-		SELECT block_hash FROM blocks WHERE block_height >= $1
-	)`, blockHeight)
-	if err != nil {
-		fmt.Printf("Error deleting transactions for blocks: %v\n", err)
+	if len(blk.Txs) > 0 {
+		fmt.Printf("Block Details: Height: %d, Hash: %s, ParentHash: %s, Transactions: %d\n", blockHeight, blockHash, parentHash, len(blk.Txs))
 	}
-
-	_, err = s.db.Exec(`DELETE FROM blocks WHERE block_height >= $1`, blockHeight)
-	if err != nil {
-		fmt.Printf("Error deleting blocks: %v\n", err)
-	}
-
-	fmt.Printf("Block Details: ID: %s, ParentID: %s, StateRoot: %s, Height: %d\n", blockID, parentID, stateRoot, blockHeight)
-	fmt.Printf("Transactions in block %d: %d\n", blockHeight, len(blk.Txs))
 
 	for i, tx := range blk.Txs {
 		txID := tx.ID().String()
@@ -180,8 +181,6 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 					}
 				}
 			}
-		} else {
-			fmt.Printf("Warning: No transaction result found for transaction index %d\n", i)
 		}
 		totalFee += fee
 		uniqueParticipants[sponsor] = struct{}{}
@@ -192,7 +191,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		// Save transaction to the database
 		_, err := s.db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp)
 			VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8)`,
-			txID, blockID, sponsor, tx.MaxFee(), success, fee, outputs, timestamp)
+			txID, blockHash, sponsor, tx.MaxFee(), success, fee, outputs, timestamp)
 		if err != nil {
 			fmt.Printf("Error saving transaction to database: %v\n", err)
 			continue
@@ -204,24 +203,6 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		for j, action := range tx.Actions {
 			actionType := action.GetTypeID()
 
-			/*
-				// Use reflection to dynamically get field names and values from the action
-				actionValue := reflect.ValueOf(action).Elem()
-				actionDetails := make(map[string]interface{})
-
-				for i := 0; i < actionValue.NumField(); i++ {
-					field := actionValue.Type().Field(i)
-					fieldName := field.Name
-					fieldValue := actionValue.Field(i).Interface()
-					actionDetails[fieldName] = fieldValue
-				}
-
-				actionDetailsJSON, err := json.Marshal(actionDetails)
-				if err != nil {
-					fmt.Printf("Error marshaling action details: %v\n", err)
-					actionDetailsJSON = []byte("{}")
-				}
-			*/
 			actionDetailsJSON := "{}"
 			if actionDetails, err := json.Marshal(action); err == nil {
 				actionDetailsJSON = string(actionDetails)
@@ -253,7 +234,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
             avg_tx_size = EXCLUDED.avg_tx_size,
             unique_participants = EXCLUDED.unique_participants,
             timestamp = EXCLUDED.timestamp`,
-		blockHeight, blockID, parentID, stateRoot, blockSize, txCount, totalFee, avgTxSize, len(uniqueParticipants), timestamp)
+		blockHeight, blockHash, parentHash, stateRoot, blockSize, txCount, totalFee, avgTxSize, len(uniqueParticipants), timestamp)
 	if err != nil {
 		fmt.Printf("Error saving block to database: %v\n", err)
 		return &emptypb.Empty{}, nil
