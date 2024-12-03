@@ -3,12 +3,12 @@ package api
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nuklai/nuklaivm-external-subscriber/models"
 )
 
-// GetAllTransactions retrieves all transactions with pagination
 // GetAllTransactions retrieves all transactions with pagination and total count
 func GetAllTransactions(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -65,5 +65,38 @@ func GetTransactionsByBlock(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, transactions)
+	}
+}
+
+// GetTransactionsByUser retrieves transactions for a specific user (sponsor)
+func GetTransactionsByUser(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := c.Param("user")
+
+		// Normalize the user identifier by removing "0x" prefix if present
+		user = strings.TrimPrefix(user, "0x")
+
+		limit := c.DefaultQuery("limit", "10")
+		offset := c.DefaultQuery("offset", "0")
+
+		// Get total count of user's transactions
+		var totalCount int
+		err := db.QueryRow(`SELECT COUNT(*) FROM transactions WHERE sponsor = $1`, user).Scan(&totalCount)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count transactions for user"})
+			return
+		}
+
+		// Fetch paginated transactions for the user
+		transactions, err := models.FetchTransactionsByUser(db, user, limit, offset)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transactions for user"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"counter": totalCount,
+			"items":   transactions,
+		})
 	}
 }

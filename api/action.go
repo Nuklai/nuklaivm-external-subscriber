@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nuklai/nuklaivm-external-subscriber/models"
@@ -64,5 +65,43 @@ func GetActionsByTransactionHash(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, actions)
+	}
+}
+
+// GetActionsByUser retrieves actions for a specific user
+func GetActionsByUser(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := c.Param("user")
+
+		// Normalize the user identifier by removing "0x" prefix if present
+		user = strings.TrimPrefix(user, "0x")
+
+		limit := c.DefaultQuery("limit", "10")
+		offset := c.DefaultQuery("offset", "0")
+
+		// Get total count of user's actions
+		var totalCount int
+		err := db.QueryRow(`
+            SELECT COUNT(*)
+            FROM actions
+            INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
+            WHERE transactions.sponsor = $1
+        `, user).Scan(&totalCount)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count actions for user"})
+			return
+		}
+
+		// Fetch paginated actions for the user
+		actions, err := models.FetchActionsByUser(db, user, limit, offset)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions for user"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"counter": totalCount,
+			"items":   actions,
+		})
 	}
 }

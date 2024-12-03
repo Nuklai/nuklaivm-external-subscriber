@@ -67,6 +67,24 @@ func FetchActionsByBlock(db *sql.DB, blockIdentifier string) ([]Action, error) {
 	return scanActions(rows)
 }
 
+// FetchActionsByUser retrieves actions by user with pagination
+func FetchActionsByUser(db *sql.DB, user, limit, offset string) ([]Action, error) {
+	rows, err := db.Query(`
+        SELECT actions.*
+        FROM actions
+        INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
+        WHERE transactions.sponsor = $1
+        ORDER BY actions.timestamp DESC
+        LIMIT $2 OFFSET $3
+    `, user, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanActions(rows)
+}
+
 // Helper function to scan action rows and unmarshal action details
 func scanActions(rows *sql.Rows) ([]Action, error) {
 	var actions []Action

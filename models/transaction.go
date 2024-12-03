@@ -77,6 +77,22 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	return scanTransactions(rows)
 }
 
+// FetchTransactionsByUser retrieves transactions by user (sponsor) with pagination
+func FetchTransactionsByUser(db *sql.DB, user, limit, offset string) ([]Transaction, error) {
+	rows, err := db.Query(`
+        SELECT * FROM transactions
+        WHERE sponsor = $1
+        ORDER BY timestamp DESC
+        LIMIT $2 OFFSET $3
+    `, user, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanTransactions(rows)
+}
+
 // Helper function to scan transaction rows and unmarshal outputs
 func scanTransactions(rows *sql.Rows) ([]Transaction, error) {
 	var transactions []Transaction

@@ -360,6 +360,49 @@ The REST API is available at `http://localhost:8080`.
     ]
     ```
 
+- **Get Transactions For a specific user**
+
+  - **Endpoint**: `/transactions/user/:user`
+  - **Description**: Retrieves all transactions associated with the specified user (sponsor). Supports both plain and 0x-prefixed identifiers.
+  - **Parameters**:
+    - Limit (optional): Number of transactions to return (default: 10).
+    - offset (optional): Offset for pagination (default: 0).
+  - **Example**: `curl http://localhost:8080/transactions/user/006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840`
+  - **Output**:
+
+    ```bash
+    {
+      "counter": 1,
+      "items": [
+        {
+          "ID": 1,
+          "TxHash": "UrQ1r61PUjQuq9DzGZLjomSeVYt1SGhiNTrdYRA98RrXNciSy",
+          "BlockHash": "y7anf2mLCPeKhBtJ1PqXeTUhRaF3DnhWCiQkTwRPuxzrj8dHk",
+          "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "MaxFee": 53000,
+          "Success": true,
+          "Fee": 48500,
+          "Actions": [
+            {
+              "ActionType": 0,
+              "Input": {
+                "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+                "memo": "",
+                "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+                "value": 5000000000
+              },
+              "Output": {
+                "receiver_balance": 5000000000,
+                "sender_balance": 852999994999951500
+              }
+            }
+          ],
+          "Timestamp": "2024-12-03T16:20:53Z"
+        }
+      ]
+    }
+    ```
+
 #### Action Endpoints
 
 - **Get Actions by Transaction Hash**
@@ -469,6 +512,41 @@ The REST API is available at `http://localhost:8080`.
         "Timestamp": "2024-12-02T21:48:37Z"
       }
     ]
+    ```
+
+- **Get Actions For a specific user**
+
+  - **Endpoint**: `/actions/user/:user`
+  - **Description**: Retrieves all actions associated with the specified user. Supports both plain and 0x-prefixed identifiers.
+  - **Parameters**:
+    - Limit (optional): Number of actions to return (default: 10).
+    - offset (optional): Offset for pagination (default: 0).
+  - **Example**: `curl http://localhost:8080/actions/user/006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840`
+  - **Output**:
+
+    ```bash
+    {
+      "counter": 1,
+      "items": [
+        {
+          "ID": 1,
+          "TxHash": "UrQ1r61PUjQuq9DzGZLjomSeVYt1SGhiNTrdYRA98RrXNciSy",
+          "ActionType": 0,
+          "ActionIndex": 0,
+          "Input": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+            "value": 5000000000
+          },
+          "Output": {
+            "receiver_balance": 5000000000,
+            "sender_balance": 852999994999951500
+          },
+          "Timestamp": "2024-12-03T16:20:53Z"
+        }
+      ]
+    }
     ```
 
 ### gRPC Server
