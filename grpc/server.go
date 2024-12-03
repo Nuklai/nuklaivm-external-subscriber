@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -59,7 +58,7 @@ func StartGRPCServer(db *sql.DB, port string) {
 	// Enable gRPC reflection for tools like grpcurl
 	reflection.Register(grpcServer)
 
-	fmt.Printf("External Subscriber server is listening on port %s...\n", port)
+	log.Printf("External Subscriber server is listening on port %s...\n", port)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
@@ -68,13 +67,13 @@ func StartGRPCServer(db *sql.DB, port string) {
 // Initialize receives genesis data for initialization and saves it to the database
 // Initialize receives genesis data for initialization and saves it to the database
 func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*emptypb.Empty, error) {
-	fmt.Println("Initializing External Subscriber with genesis data...")
+	log.Println("Initializing External Subscriber with genesis data...")
 
 	// Decode genesis data
 	genesisData := req.GetGenesis()
 	var parsedGenesis map[string]interface{}
 	if err := json.Unmarshal(genesisData, &parsedGenesis); err != nil {
-		fmt.Println("Error parsing genesis data:", err)
+		log.Println("Error parsing genesis data:", err)
 		return nil, err
 	}
 
@@ -84,25 +83,25 @@ func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*em
 	// Remove existing genesis data
 	_, err := s.db.Exec(`DELETE FROM genesis_data`)
 	if err != nil {
-		fmt.Printf("Error deleting old genesis data from database: %v\n", err)
+		log.Printf("Error deleting old genesis data from database: %v\n", err)
 	}
 
 	// Save new genesis data to the database
 	_, err = s.db.Exec(`INSERT INTO genesis_data (data) VALUES ($1::json)`, string(genesisData))
 	if err != nil {
-		fmt.Printf("Error saving new genesis data to database: %v\n", err)
+		log.Printf("Error saving new genesis data to database: %v\n", err)
 		return nil, err
 	}
 
 	// Create parser from genesis bytes
 	parser, err := vm.CreateParser(genesisData)
 	if err != nil {
-		fmt.Println("Error creating parser:", err)
+		log.Println("Error creating parser:", err)
 		return nil, err
 	}
 	s.parser = parser
 
-	fmt.Println("Genesis data initialized successfully.")
+	log.Println("Genesis data initialized successfully.")
 	return &emptypb.Empty{}, nil
 }
 
@@ -113,7 +112,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	// Attempt to unmarshal the executed block using UnmarshalExecutedBlock
 	executedBlock, err := chain.UnmarshalExecutedBlock(blockData, s.parser)
 	if err != nil {
-		fmt.Printf("Error parsing block data: %v\n", err)
+		log.Printf("Error parsing block data: %v\n", err)
 		return &emptypb.Empty{}, nil
 	}
 
@@ -138,49 +137,55 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 
 	// If the block height is 1, reset the database schema
 	if blockHeight == 1 {
-		fmt.Println("First block detected (genesis). Resetting the database...")
+		log.Println("First block detected (genesis). Resetting the database...")
 
 		// Drop all tables
 		_, err := s.db.Exec(`
 			DROP TABLE IF EXISTS actions, transactions, blocks CASCADE;
 		`)
 		if err != nil {
-			fmt.Printf("Error dropping existing tables: %v\n", err)
+			log.Printf("Error dropping existing tables: %v\n", err)
 			return &emptypb.Empty{}, nil
 		}
 
 		// Re-create the schema
 		err = subscriberDB.CreateSchema(s.db)
 		if err != nil {
-			fmt.Printf("Error re-creating schema: %v\n", err)
+			log.Printf("Error re-creating schema: %v\n", err)
 			return &emptypb.Empty{}, nil
 		}
 
-		fmt.Println("Database reset and schema re-created successfully.")
+		log.Println("Database reset and schema re-created successfully.")
 	}
 
-	fmt.Printf("Block Details: Height: %d, Hash: %s, ParentHash: %s, Transactions: %d\n", blockHeight, blockHash, parentHash, len(blk.Txs))
+	log.Printf("Block Details: Height: %d, Hash: %s, ParentHash: %s, Transactions: %d\n", blockHeight, blockHash, parentHash, len(blk.Txs))
 
 	for i, tx := range blk.Txs {
 		txID := tx.ID().String()
 		sponsor := tx.Sponsor().String()
 		fee := uint64(0)
-		outputs := "{}"
+		outputs := []map[string]interface{}{}
 		success := false
+
+		actions := []map[string]interface{}{}
 
 		if i < len(executedBlock.Results) {
 			result := executedBlock.Results[i]
 			fee = result.Fee
 			success = result.Success
 
-			if success && len(result.Outputs) > 0 {
+			if success {
 				// Parse outputs if available
-				packer := codec.NewReader(result.Outputs[0], len(result.Outputs[0]))
-				r, err := vm.OutputParser.Unmarshal(packer)
-				if err == nil {
-					outputJSON, err := json.Marshal(r)
+				for _, outputBytes := range result.Outputs {
+					packer := codec.NewReader(outputBytes, len(outputBytes))
+					r, err := vm.OutputParser.Unmarshal(packer)
 					if err == nil {
-						outputs = string(outputJSON)
+						outputJSON, err := json.Marshal(r)
+						if err == nil {
+							var outputMap map[string]interface{}
+							json.Unmarshal(outputJSON, &outputMap)
+							outputs = append(outputs, outputMap)
+						}
 					}
 				}
 			}
@@ -188,38 +193,78 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		totalFee += fee
 		uniqueParticipants[sponsor] = struct{}{}
 
-		fmt.Printf("\tTransaction %d: %s\n", i+1, txID)
-		fmt.Printf("\tOutputs: %v\n", outputs)
+		log.Printf("\tTransaction %d: %s\n", i+1, txID)
+		log.Printf("\tOutputs: %v\n", outputs)
 
-		// Save transaction to the database
-		_, err := s.db.Exec(`INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp)
-			VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8)`,
-			txID, blockHash, sponsor, tx.MaxFee(), success, fee, outputs, timestamp)
-		if err != nil {
-			fmt.Printf("Error saving transaction to database: %v\n", err)
-			continue
-		}
-
-		fmt.Printf("\tNumber of Actions: %d\n", len(tx.Actions))
-
-		// Process and save actions associated with the transaction
+		// Process and aggregate actions for the transaction
 		for j, action := range tx.Actions {
 			actionType := action.GetTypeID()
 
-			actionDetailsJSON := "{}"
-			if actionDetails, err := json.Marshal(action); err == nil {
-				actionDetailsJSON = string(actionDetails)
+			actionInputJSON := "{}"
+			if inputDetails, err := json.Marshal(action); err != nil {
+				log.Printf("Error marshaling action input: %v\n", err)
+			} else {
+				actionInputJSON = string(inputDetails)
 			}
 
-			fmt.Printf("\t\tAction %d: Type: %d, Details: %s\n", j+1, actionType, actionDetailsJSON)
+			actionOutputsJSON := "{}"
+			if j < len(outputs) {
+				actionOutputs := outputs[j]
+				if actionOutputs != nil {
+					actionOutputsBytes, err := json.Marshal(actionOutputs)
+					if err != nil {
+						log.Printf("Error marshaling action outputs: %v\n", err)
+					} else {
+						actionOutputsJSON = string(actionOutputsBytes)
+					}
+				}
+			}
 
-			// Save each action to the actions table
-			_, err = s.db.Exec(`INSERT INTO actions (tx_hash, action_type, action_details, timestamp)
-				VALUES ($1, $2, $3::json, $4)`,
-				txID, actionType, actionDetailsJSON, timestamp)
+			actionEntry := map[string]interface{}{
+				"ActionType": actionType,
+				"Input":      json.RawMessage(actionInputJSON),
+				"Output":     json.RawMessage(actionOutputsJSON),
+			}
+			actions = append(actions, actionEntry)
+
+			log.Printf("\t\tAction %d: Type: %d, Input: %s, Output: %s\n", j+1, actionType, actionInputJSON, actionOutputsJSON)
+
+			// Save the action in the actions table
+			_, err := s.db.Exec(`
+					INSERT INTO actions (tx_hash, action_type, action_index, input, output, timestamp)
+					VALUES ($1, $2, $3, $4::json, $5::json, $6)
+					ON CONFLICT (tx_hash, action_type, action_index) DO UPDATE
+					SET input = EXCLUDED.input,
+							output = EXCLUDED.output,
+							timestamp = EXCLUDED.timestamp`,
+				txID, actionType, j, actionInputJSON, actionOutputsJSON, timestamp)
 			if err != nil {
-				fmt.Printf("Error saving action to database: %v\n", err)
+				log.Printf("Error saving action to database: %v\n", err)
 			}
+		}
+
+		// Convert actions to JSON for storing in the transactions table
+		actionsJSON, err := json.Marshal(actions)
+		if err != nil {
+			log.Printf("Error marshaling actions: %v\n", err)
+			continue
+		}
+
+		// Save the transaction with aggregated actions
+		_, err = s.db.Exec(`
+				INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, actions, timestamp)
+				VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8)
+				ON CONFLICT (tx_hash) DO UPDATE
+				SET block_hash = EXCLUDED.block_hash,
+						sponsor = EXCLUDED.sponsor,
+						max_fee = EXCLUDED.max_fee,
+						success = EXCLUDED.success,
+						fee = EXCLUDED.fee,
+						actions = EXCLUDED.actions,
+						timestamp = EXCLUDED.timestamp`,
+			txID, blockHash, sponsor, tx.MaxFee(), success, fee, actionsJSON, timestamp)
+		if err != nil {
+			log.Printf("Error saving transaction to database: %v\n", err)
 		}
 	}
 
@@ -239,7 +284,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
             timestamp = EXCLUDED.timestamp`,
 		blockHeight, blockHash, parentHash, stateRoot, blockSize, txCount, totalFee, avgTxSize, len(uniqueParticipants), timestamp)
 	if err != nil {
-		fmt.Printf("Error saving block to database: %v\n", err)
+		log.Printf("Error saving block to database: %v\n", err)
 		return &emptypb.Empty{}, nil
 	}
 

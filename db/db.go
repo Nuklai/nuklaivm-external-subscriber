@@ -53,7 +53,7 @@ func CreateSchema(db *sql.DB) error {
 		max_fee NUMERIC,
 		success BOOLEAN,
 		fee NUMERIC,
-		outputs JSON,
+		actions JSON,
 		timestamp TIMESTAMP NOT NULL
 	);
 
@@ -61,8 +61,11 @@ func CreateSchema(db *sql.DB) error {
 		id SERIAL PRIMARY KEY,
 		tx_hash TEXT NOT NULL,
 		action_type SMALLINT NOT NULL,
-		action_details JSON,
-		timestamp TIMESTAMP NOT NULL
+		action_index INT NOT NULL,
+		input JSON,
+    output JSON,
+		timestamp TIMESTAMP NOT NULL,
+		UNIQUE (tx_hash, action_type, action_index)
 	);
 
 	CREATE TABLE IF NOT EXISTS genesis_data (

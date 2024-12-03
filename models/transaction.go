@@ -8,15 +8,15 @@ import (
 )
 
 type Transaction struct {
-	ID        int                    `json:"ID"`
-	TxHash    string                 `json:"TxHash"`
-	BlockHash string                 `json:"BlockHash"`
-	Sponsor   string                 `json:"Sponsor"`
-	MaxFee    float64                `json:"MaxFee"`
-	Success   bool                   `json:"Success"`
-	Fee       uint64                 `json:"Fee"`
-	Outputs   map[string]interface{} `json:"Outputs"`
-	Timestamp string                 `json:"Timestamp"`
+	ID        int                      `json:"ID"`
+	TxHash    string                   `json:"TxHash"`
+	BlockHash string                   `json:"BlockHash"`
+	Sponsor   string                   `json:"Sponsor"`
+	MaxFee    float64                  `json:"MaxFee"`
+	Success   bool                     `json:"Success"`
+	Fee       uint64                   `json:"Fee"`
+	Actions   []map[string]interface{} `json:"Actions"`
+	Timestamp string                   `json:"Timestamp"`
 }
 
 // FetchAllTransactions retrieves transactions from the database with pagination
@@ -27,34 +27,21 @@ func FetchAllTransactions(db *sql.DB, limit, offset string) ([]Transaction, erro
 	}
 	defer rows.Close()
 
-	var transactions []Transaction
-	for rows.Next() {
-		var tx Transaction
-		var outputsJSON []byte
-		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(outputsJSON, &tx.Outputs); err != nil {
-			return nil, err
-		}
-		transactions = append(transactions, tx)
-	}
-
-	return transactions, nil
+	return scanTransactions(rows)
 }
 
 // FetchTransactionByHash retrieves a transaction by its hash
 func FetchTransactionByHash(db *sql.DB, txHash string) (Transaction, error) {
 	var tx Transaction
-	var outputsJSON []byte
+	var actionsJSON []byte
 
 	err := db.QueryRow(`SELECT * FROM transactions WHERE tx_hash = $1`, txHash).Scan(
-		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp)
+		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp)
 	if err != nil {
 		return tx, err
 	}
 
-	if err := json.Unmarshal(outputsJSON, &tx.Outputs); err != nil {
+	if err := json.Unmarshal(actionsJSON, &tx.Actions); err != nil {
 		return tx, err
 	}
 
@@ -68,14 +55,14 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
 		// blockIdentifier is a block height
 		query = `
-			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.max_fee, transactions.success, transactions.fee, transactions.outputs, transactions.timestamp
+			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.max_fee, transactions.success, transactions.fee, transactions.actions, transactions.timestamp
 			FROM transactions
 			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
 			WHERE blocks.block_height = $1`
 	} else {
 		// blockIdentifier is a block hash
 		query = `
-			SELECT id, tx_hash, block_hash, sponsor, max_fee, success, fee, outputs, timestamp
+			SELECT id, tx_hash, block_hash, sponsor, max_fee, success, fee, actions, timestamp
 			FROM transactions
 			WHERE block_hash = $1`
 	}
@@ -96,12 +83,12 @@ func scanTransactions(rows *sql.Rows) ([]Transaction, error) {
 
 	for rows.Next() {
 		var tx Transaction
-		var outputsJSON []byte
-		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &outputsJSON, &tx.Timestamp); err != nil {
+		var actionsJSON []byte
+		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp); err != nil {
 			return nil, err
 		}
-		if err := json.Unmarshal(outputsJSON, &tx.Outputs); err != nil {
-			return nil, errors.New("unable to parse outputs")
+		if err := json.Unmarshal(actionsJSON, &tx.Actions); err != nil {
+			return nil, errors.New("unable to parse actions")
 		}
 		transactions = append(transactions, tx)
 	}

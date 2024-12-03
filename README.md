@@ -28,23 +28,15 @@ cd nuklaivm-external-subscriber
 
 ### Step 2: Environment Setup
 
-Set up environment variables, particularly `DATABASE_URL` for PostgreSQL access. By default, this is configured in `config/config.go` to:
-
-```sh
-DATABASE_URL="postgres://postgres:postgres@localhost:5432/blockchain?sslmode=disable"
-```
-
-### Step 3: Run the Program
-
-Copy the .env.example file:
+Set up environment variables:
 
 ```sh
 cp .env.example .env
 ```
 
-Note that if you modify the values of `DB_USER`, `DB_PASSWORD` or `DB_NAME`, make sure to also update your docker-compose.yml file accordingly under the `environment` and `entrypoint` section.
+Modify any values within `.env` as per your own environment.
 
-Run the setup script to initialize the database and start the servers.
+Note that if you modify the values of `DB_USER`, `DB_PASSWORD` or `DB_NAME`, make sure to also update your docker-compose.yml file accordingly under the `environment` and `entrypoint` section(if you plan on running the subscriber in docker).
 
 Run the postgres in docker and subscriber natively:
 
@@ -238,18 +230,29 @@ The REST API is available at `http://localhost:8080`.
 
     ```bash
     {
-      "ID": 2,
-      "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
-      "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
+      "ID": 1,
+      "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
+      "BlockHash": "2shfGuUK1jcU4a8eB9EoCJthcG6dVHhtNJccnY5aMAqCzgGrbG",
       "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
       "MaxFee": 53000,
       "Success": true,
       "Fee": 48500,
-      "Outputs": {
-        "receiver_balance": 100000000000,
-        "sender_balance": 852999899999951500
-      },
-      "Timestamp": "2024-12-02T10:22:50Z"
+      "Actions": [
+        {
+          "ActionType": 0,
+          "Input": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+            "value": 5000000000
+          },
+          "Output": {
+            "receiver_balance": 5000000000,
+            "sender_balance": 852999994999951500
+          }
+        }
+      ],
+      "Timestamp": "2024-12-02T21:48:37Z"
     }
     ```
 
@@ -267,32 +270,54 @@ The REST API is available at `http://localhost:8080`.
       "counter": 2,
       "items": [
         {
-          "ID": 4,
-          "TxHash": "2dikBvg99xuS1zvabXHKTu2MGC43Sh89mseCgbRXtRxrYomo4",
-          "BlockHash": "2LrudVbwePsi8GmNWg4qitSEWyBMeSFycaWu3vKaAw6NrVRJ9K",
+          "ID": 3,
+          "TxHash": "21Es58ApKEK91Sq4jXsL35k5SME97kswSgwh9zeykATMneVMGi",
+          "BlockHash": "2NRjSUBBw4KTQsJr939ArJLx5PihiuqQSaHm4c58T4DdMJD6Fs",
           "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
           "MaxFee": 53000,
           "Success": true,
           "Fee": 48500,
-          "Outputs": {
-            "receiver_balance": 15000000000,
-            "sender_balance": 852999984999903000
-          },
-          "Timestamp": "2024-12-02T11:49:59Z"
+          "Actions": [
+            {
+              "ActionType": 0,
+              "Input": {
+                "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+                "memo": "",
+                "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+                "value": 10000000000
+              },
+              "Output": {
+                "receiver_balance": 15000000000,
+                "sender_balance": 852999984999903000
+              }
+            }
+          ],
+          "Timestamp": "2024-12-02T21:50:15Z"
         },
         {
-          "ID": 2,
-          "TxHash": "68UpaXgNCxiT9xBq4Ja8vb7QKmQhLvWguj5z4Czq86hXZPtb1",
-          "BlockHash": "p5jkYp2TfK1nH7WzXmeDypNKmtnMoRpNLadYCDNYoRyrTvxZS",
+          "ID": 1,
+          "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
+          "BlockHash": "2shfGuUK1jcU4a8eB9EoCJthcG6dVHhtNJccnY5aMAqCzgGrbG",
           "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
           "MaxFee": 53000,
           "Success": true,
           "Fee": 48500,
-          "Outputs": {
-            "receiver_balance": 10000000000,
-            "sender_balance": 852999989999951500
-          },
-          "Timestamp": "2024-12-02T11:47:09Z"
+          "Actions": [
+            {
+              "ActionType": 0,
+              "Input": {
+                "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+                "memo": "",
+                "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+                "value": 5000000000
+              },
+              "Output": {
+                "receiver_balance": 5000000000,
+                "sender_balance": 852999994999951500
+              }
+            }
+          ],
+          "Timestamp": "2024-12-02T21:48:37Z"
         }
       ]
     }
@@ -308,9 +333,9 @@ The REST API is available at `http://localhost:8080`.
     ```bash
     [
       {
-        "ID": 2,
-        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
-        "BlockHash": "2b38U36vP4esbZbjAXu54pPALaJ32kaf32tDU1qC6Ek97aRtH1",
+        "ID": 1,
+        "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
+        "BlockHash": "2shfGuUK1jcU4a8eB9EoCJthcG6dVHhtNJccnY5aMAqCzgGrbG",
         "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
         "MaxFee": 53000,
         "Success": true,
@@ -319,18 +344,18 @@ The REST API is available at `http://localhost:8080`.
           {
             "ActionType": 0,
             "Input": {
-              "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-              "Memo": "",
-              "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
-              "Value": 100000000000
+              "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+              "memo": "",
+              "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+              "value": 5000000000
             },
             "Output": {
-              "receiver_balance": 100000000000,
-              "sender_balance": 852999899999951500
+              "receiver_balance": 5000000000,
+              "sender_balance": 852999994999951500
             }
           }
         ],
-        "Timestamp": "2024-12-02T10:22:50Z"
+        "Timestamp": "2024-12-02T21:48:37Z"
       }
     ]
     ```
@@ -347,20 +372,21 @@ The REST API is available at `http://localhost:8080`.
     ```bash
     [
       {
-        "ID": 2,
-        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+        "ID": 1,
+        "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
         "ActionType": 0,
+        "ActionIndex": 0,
         "Input": {
-          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-          "Memo": "",
-          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
-          "Value": 100000000000
+          "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+          "memo": "",
+          "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+          "value": 5000000000
         },
         "Output": {
-          "receiver_balance": 100000000000,
-          "sender_balance": 852999899999951500
-        }
-        "Timestamp": "2024-12-02T10:22:50Z"
+          "receiver_balance": 5000000000,
+          "sender_balance": 852999994999951500
+        },
+        "Timestamp": "2024-12-02T21:48:37Z"
       }
     ]
     ```
@@ -379,28 +405,38 @@ The REST API is available at `http://localhost:8080`.
       "counter": 2,
       "items": [
         {
-          "ID": 4,
-          "TxHash": "2dikBvg99xuS1zvabXHKTu2MGC43Sh89mseCgbRXtRxrYomo4",
+          "ID": 3,
+          "TxHash": "21Es58ApKEK91Sq4jXsL35k5SME97kswSgwh9zeykATMneVMGi",
           "ActionType": 0,
-          "ActionDetails": {
+          "ActionIndex": 0,
+          "Input": {
             "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
             "memo": "",
-            "to": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
-            "value": 5000000000
-          },
-          "Timestamp": "2024-12-02T11:49:59Z"
-        },
-        {
-          "ID": 2,
-          "TxHash": "68UpaXgNCxiT9xBq4Ja8vb7QKmQhLvWguj5z4Czq86hXZPtb1",
-          "ActionType": 0,
-          "ActionDetails": {
-            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-            "memo": "",
-            "to": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
+            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
             "value": 10000000000
           },
-          "Timestamp": "2024-12-02T11:47:09Z"
+          "Output": {
+            "receiver_balance": 15000000000,
+            "sender_balance": 852999984999903000
+          },
+          "Timestamp": "2024-12-02T21:50:15Z"
+        },
+        {
+          "ID": 1,
+          "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
+          "ActionType": 0,
+          "ActionIndex": 0,
+          "Input": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+            "value": 5000000000
+          },
+          "Output": {
+            "receiver_balance": 5000000000,
+            "sender_balance": 852999994999951500
+          },
+          "Timestamp": "2024-12-02T21:48:37Z"
         }
       ]
     }
@@ -416,16 +452,21 @@ The REST API is available at `http://localhost:8080`.
     ```bash
     [
       {
-        "ID": 2,
-        "TxHash": "WPfzKZZAeug9wakxdzpQyp2qzJ27Kbi8BEfEY3KQDAKfiBbDp",
+        "ID": 1,
+        "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
         "ActionType": 0,
-        "ActionDetails": {
-          "AssetAddress": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-          "Memo": "",
-          "To": "0x00f570339dce77fb2694edac17c9e6f36c0945959813b99b0b1a18849a7d622237",
-          "Value": 100000000000
+        "ActionIndex": 0,
+        "Input": {
+          "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+          "memo": "",
+          "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+          "value": 5000000000
         },
-        "Timestamp": "2024-12-02T10:22:50Z"
+        "Output": {
+          "receiver_balance": 5000000000,
+          "sender_balance": 852999994999951500
+        },
+        "Timestamp": "2024-12-02T21:48:37Z"
       }
     ]
     ```
@@ -441,18 +482,10 @@ The gRPC server listens on port `50051` and implements methods defined in the `E
 
 The database schema includes the following tables:
 
-- **`blocks`**: Stores block information (height, hash, parent hash, state root, timestamp, and unit prices).
-- **`transactions`**: Stores transaction details (hash, block association, sponsor, fee, success status, outputs).
-- **`actions`**: Stores actions within transactions, including action type and details.
-- **`genesis_data`**: Stores the genesis data received during initialization.
-
-### Indexes
-
-Indexes are created on critical fields to optimize query performance:
-
-- `block_height`, `block_hash`, and `timestamp` in the `blocks` table.
-- `tx_hash`, `block_hash`, and `sponsor` in the `transactions` table.
-- `tx_hash` and `action_type` in the `actions` table.
+- **`blocks`**: Stores block information
+- **`transactions`**: Stores transaction details
+- **`actions`**: Stores actions within transactions, including action type and details
+- **`genesis_data`**: Stores the genesis data received during initialization
 
 ## Running Tests
 
