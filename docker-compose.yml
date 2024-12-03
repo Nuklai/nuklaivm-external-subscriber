@@ -7,18 +7,18 @@ services:
     image: postgres:14
     container_name: nuklaivm-postgres
     environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-      POSTGRES_DB: "nuklaivm"
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'nuklaivm'
     ports:
-      - "5432:5432"
+      - '5432:5432'
     networks:
       - nuklaivm-network
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./certs:/etc/postgresql/certs
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 5s
       timeout: 10s
       retries: 5
@@ -90,10 +90,11 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: nuklaivm
       DB_SSLMODE: require
+      GRPC_WHITELISTED_BLOCKCHAIN_NODES: '172.17.0.0/16,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
     ports:
-      - "8080:8080"
-      - "50051:50051"
-    command: ["/app/subscriber"]
+      - '8080:8080'
+      - '50051:50051'
+    command: ['/app/subscriber']
     restart: always
 
 volumes:
