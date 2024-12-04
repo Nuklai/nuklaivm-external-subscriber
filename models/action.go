@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"strconv"
 )
 
@@ -11,6 +12,7 @@ type Action struct {
 	ID          int                    `json:"ID"`
 	TxHash      string                 `json:"TxHash"`
 	ActionType  int                    `json:"ActionType"`
+	ActionName  string                 `json:"ActionName"`
 	ActionIndex int                    `json:"ActionIndex"`
 	Input       map[string]interface{} `json:"Input"`
 	Output      map[string]interface{} `json:"Output"`
@@ -21,6 +23,7 @@ type Action struct {
 func FetchAllActions(db *sql.DB, limit, offset string) ([]Action, error) {
 	rows, err := db.Query(`SELECT * FROM actions ORDER BY timestamp DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -32,6 +35,7 @@ func FetchAllActions(db *sql.DB, limit, offset string) ([]Action, error) {
 func FetchActionsByTransactionHash(db *sql.DB, txHash string) ([]Action, error) {
 	rows, err := db.Query(`SELECT * FROM actions WHERE tx_hash = $1`, txHash)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -45,14 +49,14 @@ func FetchActionsByBlock(db *sql.DB, blockIdentifier string) ([]Action, error) {
 
 	if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
 		query = `
-			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_index, actions.input, actions.output, actions.timestamp
+			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_name, actions.action_index, actions.input, actions.output, actions.timestamp
 			FROM actions
 			INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
 			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
 			WHERE blocks.block_height = $1`
 	} else {
 		query = `
-			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_index, actions.input, actions.output, actions.timestamp
+			SELECT actions.id, actions.tx_hash, actions.action_type, actions.action_name, actions.action_index, actions.input, actions.output, actions.timestamp
 			FROM actions
 			INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
 			WHERE transactions.block_hash = $1`
@@ -60,6 +64,7 @@ func FetchActionsByBlock(db *sql.DB, blockIdentifier string) ([]Action, error) {
 
 	rows, err := db.Query(query, blockIdentifier)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -78,6 +83,7 @@ func FetchActionsByUser(db *sql.DB, user, limit, offset string) ([]Action, error
         LIMIT $2 OFFSET $3
     `, user, limit, offset)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -94,7 +100,7 @@ func scanActions(rows *sql.Rows) ([]Action, error) {
 			action                            Action
 			actionInputJSON, actionOutputJSON []byte
 		)
-		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &action.ActionIndex, &actionInputJSON, &actionOutputJSON, &action.Timestamp); err != nil {
+		if err := rows.Scan(&action.ID, &action.TxHash, &action.ActionType, &action.ActionName, &action.ActionIndex, &actionInputJSON, &actionOutputJSON, &action.Timestamp); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(actionInputJSON, &action.Input); err != nil {

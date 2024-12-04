@@ -36,7 +36,9 @@ cp .env.example .env
 
 Modify any values within `.env` as per your own environment.
 
-Note that if you modify the values of `DB_USER`, `DB_PASSWORD` or `DB_NAME`, make sure to also update your docker-compose.yml file accordingly under the `environment` and `entrypoint` section(if you plan on running the subscriber in docker).
+Note that if you modify the values of `DB_USER`, `DB_PASSWORD`, `DB_NAME` or `GRPC_WHITELISTED_BLOCKCHAIN_NODES`, make sure to also update your docker-compose.yml file accordingly under the `environment` and `entrypoint` section(if you plan on running the subscriber in docker).
+
+By default, the subscriber rejects all connections. In order to add an IP address to a whitelist, you must put this in the `GRPC_WHITELISTED_BLOCKCHAIN_NODES` in your .env file and docker-compose.yml(if you plan on running with docker). If you're running the `nuklaivm` in docker, make sure to include the docker IP of that container in this environment variable as well.
 
 Run the postgres in docker and subscriber natively:
 
@@ -166,16 +168,16 @@ The REST API is available at `http://localhost:8080`.
 
     ```bash
     {
-      "BlockHeight": 73,
-      "BlockHash": "p5jkYp2TfK1nH7WzXmeDypNKmtnMoRpNLadYCDNYoRyrTvxZS",
-      "ParentBlockHash": "6bMS7Gi5u4SRfHUrboQcjhvpEjMNaNpFU4s7EAzdqi5Vqcyrj",
-      "StateRoot": "oz2McvCZbS8gfp9sFjZfAFKawZW8TdrGjwwETfPpcEro26mTh",
-      "BlockSize": 307,
+      "BlockHeight": 19,
+      "BlockHash": "jr4LHX4wBYrLWow2skK6uoCNrk8SkQVqwehNd8JFH8cJzt9FH",
+      "ParentBlockHash": "DUU3CkV5aLWgAJtmpL3NZTYgPUK5jFWjgDAXpypK5UhE7Z7vD",
+      "StateRoot": "1Aep1DqL5gd7z7riiSBGAyBu46nFzuwRtvvhamudFyuSoWFo5",
+      "BlockSize": 391,
       "TxCount": 1,
-      "TotalFee": 48500,
-      "AvgTxSize": 307,
+      "TotalFee": 74800,
+      "AvgTxSize": 391,
       "UniqueParticipants": 1,
-      "Timestamp": "2024-12-02T11:47:09Z"
+      "Timestamp": "2024-12-03T21:17:28Z"
     }
     ```
 
@@ -190,31 +192,31 @@ The REST API is available at `http://localhost:8080`.
 
     ```bash
     {
-      "counter": 73,
+      "counter": 224,
       "items": [
         {
-          "BlockHeight": 73,
-          "BlockHash": "p5jkYp2TfK1nH7WzXmeDypNKmtnMoRpNLadYCDNYoRyrTvxZS",
-          "ParentBlockHash": "6bMS7Gi5u4SRfHUrboQcjhvpEjMNaNpFU4s7EAzdqi5Vqcyrj",
-          "StateRoot": "oz2McvCZbS8gfp9sFjZfAFKawZW8TdrGjwwETfPpcEro26mTh",
-          "BlockSize": 307,
-          "TxCount": 1,
-          "TotalFee": 48500,
-          "AvgTxSize": 307,
-          "UniqueParticipants": 1,
-          "Timestamp": "2024-12-02T11:47:09Z"
-        },
-        {
-          "BlockHeight": 72,
-          "BlockHash": "6bMS7Gi5u4SRfHUrboQcjhvpEjMNaNpFU4s7EAzdqi5Vqcyrj",
-          "ParentBlockHash": "fStF9MQQwV7UKQK73Pp4reKBttRGuC1X4sQRoaiB1VTTT1eG3",
-          "StateRoot": "2RuPbB1GejDpXG9pMxmmfUuP3XfLKrjmyNUXKbq8LSm6dALtL7",
+          "BlockHeight": 224,
+          "BlockHash": "LF4GsBcYkRLFCcZ9MBwCFTdq74co4PvBdBbVbHGpQZgEZagmk",
+          "ParentBlockHash": "ExuHmcdhUhEZHBueNzfhCf46VqyVDtFmm1HLCVYVtGASkd7s1",
+          "StateRoot": "Pwkw7jyhsFyQsHznYF13RbUTWqRX9EysjT434dyvjmQkiDBof",
           "BlockSize": 84,
           "TxCount": 0,
           "TotalFee": 0,
           "AvgTxSize": 0,
           "UniqueParticipants": 0,
-          "Timestamp": "2024-12-02T11:48:12Z"
+          "Timestamp": "2024-12-03T21:20:04Z"
+        },
+        {
+          "BlockHeight": 223,
+          "BlockHash": "ExuHmcdhUhEZHBueNzfhCf46VqyVDtFmm1HLCVYVtGASkd7s1",
+          "ParentBlockHash": "17A97XSc8Y7Yvaz1Ze2qNTN72DmtCC4fjQHHknnyf3UXQGHjA",
+          "StateRoot": "2tR8iWDVcJDDHCRXwE9kSzj5GxxTFKrBj2As3UvmXK8AqmEvdE",
+          "BlockSize": 84,
+          "TxCount": 0,
+          "TotalFee": 0,
+          "AvgTxSize": 0,
+          "UniqueParticipants": 0,
+          "Timestamp": "2024-12-03T21:20:03Z"
         }
       ]
     }
@@ -230,16 +232,17 @@ The REST API is available at `http://localhost:8080`.
 
     ```bash
     {
-      "ID": 1,
-      "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
-      "BlockHash": "2shfGuUK1jcU4a8eB9EoCJthcG6dVHhtNJccnY5aMAqCzgGrbG",
+      "ID": 3,
+      "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
+      "BlockHash": "2MENB3iJJRJPkvq212sCCrJgAWaWite5CijugKbuf7zEVvVqe7",
       "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
       "MaxFee": 53000,
       "Success": true,
       "Fee": 48500,
       "Actions": [
         {
-          "ActionType": 0,
+          "ActionType": "Transfer",
+          "ActionTypeID": 0,
           "Input": {
             "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
             "memo": "",
@@ -248,11 +251,11 @@ The REST API is available at `http://localhost:8080`.
           },
           "Output": {
             "receiver_balance": 5000000000,
-            "sender_balance": 852999994999951500
+            "sender_balance": 852999994999876700
           }
         }
       ],
-      "Timestamp": "2024-12-02T21:48:37Z"
+      "Timestamp": "2024-12-03T21:18:36Z"
     }
     ```
 
@@ -271,40 +274,16 @@ The REST API is available at `http://localhost:8080`.
       "items": [
         {
           "ID": 3,
-          "TxHash": "21Es58ApKEK91Sq4jXsL35k5SME97kswSgwh9zeykATMneVMGi",
-          "BlockHash": "2NRjSUBBw4KTQsJr939ArJLx5PihiuqQSaHm4c58T4DdMJD6Fs",
+          "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
+          "BlockHash": "2MENB3iJJRJPkvq212sCCrJgAWaWite5CijugKbuf7zEVvVqe7",
           "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
           "MaxFee": 53000,
           "Success": true,
           "Fee": 48500,
           "Actions": [
             {
-              "ActionType": 0,
-              "Input": {
-                "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-                "memo": "",
-                "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
-                "value": 10000000000
-              },
-              "Output": {
-                "receiver_balance": 15000000000,
-                "sender_balance": 852999984999903000
-              }
-            }
-          ],
-          "Timestamp": "2024-12-02T21:50:15Z"
-        },
-        {
-          "ID": 1,
-          "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
-          "BlockHash": "2shfGuUK1jcU4a8eB9EoCJthcG6dVHhtNJccnY5aMAqCzgGrbG",
-          "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
-          "MaxFee": 53000,
-          "Success": true,
-          "Fee": 48500,
-          "Actions": [
-            {
-              "ActionType": 0,
+              "ActionType": "Transfer",
+              "ActionTypeID": 0,
               "Input": {
                 "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
                 "memo": "",
@@ -313,11 +292,44 @@ The REST API is available at `http://localhost:8080`.
               },
               "Output": {
                 "receiver_balance": 5000000000,
-                "sender_balance": 852999994999951500
+                "sender_balance": 852999994999876700
               }
             }
           ],
-          "Timestamp": "2024-12-02T21:48:37Z"
+          "Timestamp": "2024-12-03T21:18:36Z"
+        },
+        {
+          "ID": 1,
+          "TxHash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+          "BlockHash": "jr4LHX4wBYrLWow2skK6uoCNrk8SkQVqwehNd8JFH8cJzt9FH",
+          "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "MaxFee": 58300,
+          "Success": true,
+          "Fee": 74800,
+          "Actions": [
+            {
+              "ActionType": "CreateAsset",
+              "ActionTypeID": 4,
+              "Input": {
+                "asset_type": 0,
+                "decimals": 0,
+                "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "max_supply": 0,
+                "metadata": "test",
+                "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "name": "Kiran",
+                "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "symbol": "KP1"
+              },
+              "Output": {
+                "asset_balance": 0,
+                "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+                "nft_id": ""
+              }
+            }
+          ],
+          "Timestamp": "2024-12-03T21:17:28Z"
         }
       ]
     }
@@ -334,28 +346,36 @@ The REST API is available at `http://localhost:8080`.
     [
       {
         "ID": 1,
-        "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
-        "BlockHash": "2shfGuUK1jcU4a8eB9EoCJthcG6dVHhtNJccnY5aMAqCzgGrbG",
+        "TxHash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+        "BlockHash": "jr4LHX4wBYrLWow2skK6uoCNrk8SkQVqwehNd8JFH8cJzt9FH",
         "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
-        "MaxFee": 53000,
+        "MaxFee": 58300,
         "Success": true,
-        "Fee": 48500,
+        "Fee": 74800,
         "Actions": [
           {
-            "ActionType": 0,
+            "ActionType": "CreateAsset",
+            "ActionTypeID": 4,
             "Input": {
-              "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-              "memo": "",
-              "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
-              "value": 5000000000
+              "asset_type": 0,
+              "decimals": 0,
+              "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+              "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+              "max_supply": 0,
+              "metadata": "test",
+              "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+              "name": "Kiran",
+              "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+              "symbol": "KP1"
             },
             "Output": {
-              "receiver_balance": 5000000000,
-              "sender_balance": 852999994999951500
+              "asset_balance": 0,
+              "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+              "nft_id": ""
             }
           }
         ],
-        "Timestamp": "2024-12-02T21:48:37Z"
+        "Timestamp": "2024-12-03T21:17:28Z"
       }
     ]
     ```
@@ -367,24 +387,25 @@ The REST API is available at `http://localhost:8080`.
   - **Parameters**:
     - Limit (optional): Number of transactions to return (default: 10).
     - offset (optional): Offset for pagination (default: 0).
-  - **Example**: `curl http://localhost:8080/transactions/user/006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840`
+  - **Example**: `curl http://localhost:8080/transactions/user/00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9`
   - **Output**:
 
     ```bash
     {
-      "counter": 1,
+      "counter": 2,
       "items": [
         {
-          "ID": 1,
-          "TxHash": "UrQ1r61PUjQuq9DzGZLjomSeVYt1SGhiNTrdYRA98RrXNciSy",
-          "BlockHash": "y7anf2mLCPeKhBtJ1PqXeTUhRaF3DnhWCiQkTwRPuxzrj8dHk",
+          "ID": 3,
+          "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
+          "BlockHash": "2MENB3iJJRJPkvq212sCCrJgAWaWite5CijugKbuf7zEVvVqe7",
           "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
           "MaxFee": 53000,
           "Success": true,
           "Fee": 48500,
           "Actions": [
             {
-              "ActionType": 0,
+              "ActionType": "Transfer",
+              "ActionTypeID": 0,
               "Input": {
                 "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
                 "memo": "",
@@ -393,11 +414,44 @@ The REST API is available at `http://localhost:8080`.
               },
               "Output": {
                 "receiver_balance": 5000000000,
-                "sender_balance": 852999994999951500
+                "sender_balance": 852999994999876700
               }
             }
           ],
-          "Timestamp": "2024-12-03T16:20:53Z"
+          "Timestamp": "2024-12-03T21:18:36Z"
+        },
+        {
+          "ID": 1,
+          "TxHash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+          "BlockHash": "jr4LHX4wBYrLWow2skK6uoCNrk8SkQVqwehNd8JFH8cJzt9FH",
+          "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "MaxFee": 58300,
+          "Success": true,
+          "Fee": 74800,
+          "Actions": [
+            {
+              "ActionType": "CreateAsset",
+              "ActionTypeID": 4,
+              "Input": {
+                "asset_type": 0,
+                "decimals": 0,
+                "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "max_supply": 0,
+                "metadata": "test",
+                "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "name": "Kiran",
+                "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+                "symbol": "KP1"
+              },
+              "Output": {
+                "asset_balance": 0,
+                "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+                "nft_id": ""
+              }
+            }
+          ],
+          "Timestamp": "2024-12-03T21:17:28Z"
         }
       ]
     }
@@ -415,9 +469,10 @@ The REST API is available at `http://localhost:8080`.
     ```bash
     [
       {
-        "ID": 1,
-        "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
+        "ID": 3,
+        "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
         "ActionType": 0,
+        "ActionName": "Transfer",
         "ActionIndex": 0,
         "Input": {
           "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
@@ -427,9 +482,9 @@ The REST API is available at `http://localhost:8080`.
         },
         "Output": {
           "receiver_balance": 5000000000,
-          "sender_balance": 852999994999951500
+          "sender_balance": 852999994999876700
         },
-        "Timestamp": "2024-12-02T21:48:37Z"
+        "Timestamp": "2024-12-03T21:18:36Z"
       }
     ]
     ```
@@ -449,25 +504,9 @@ The REST API is available at `http://localhost:8080`.
       "items": [
         {
           "ID": 3,
-          "TxHash": "21Es58ApKEK91Sq4jXsL35k5SME97kswSgwh9zeykATMneVMGi",
+          "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
           "ActionType": 0,
-          "ActionIndex": 0,
-          "Input": {
-            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-            "memo": "",
-            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
-            "value": 10000000000
-          },
-          "Output": {
-            "receiver_balance": 15000000000,
-            "sender_balance": 852999984999903000
-          },
-          "Timestamp": "2024-12-02T21:50:15Z"
-        },
-        {
-          "ID": 1,
-          "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
-          "ActionType": 0,
+          "ActionName": "Transfer",
           "ActionIndex": 0,
           "Input": {
             "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
@@ -477,9 +516,34 @@ The REST API is available at `http://localhost:8080`.
           },
           "Output": {
             "receiver_balance": 5000000000,
-            "sender_balance": 852999994999951500
+            "sender_balance": 852999994999876700
           },
-          "Timestamp": "2024-12-02T21:48:37Z"
+          "Timestamp": "2024-12-03T21:18:36Z"
+        },
+        {
+          "ID": 1,
+          "TxHash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+          "ActionType": 4,
+          "ActionName": "CreateAsset",
+          "ActionIndex": 0,
+          "Input": {
+            "asset_type": 0,
+            "decimals": 0,
+            "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "max_supply": 0,
+            "metadata": "test",
+            "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "name": "Kiran",
+            "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "symbol": "KP1"
+          },
+          "Output": {
+            "asset_balance": 0,
+            "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+            "nft_id": ""
+          },
+          "Timestamp": "2024-12-03T21:17:28Z"
         }
       ]
     }
@@ -496,20 +560,28 @@ The REST API is available at `http://localhost:8080`.
     [
       {
         "ID": 1,
-        "TxHash": "fPogR2TfRxHmDL2MXyZNJEo8NsFQvDk8Knzod4WzdHGudRZep",
-        "ActionType": 0,
+        "TxHash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+        "ActionType": 4,
+        "ActionName": "CreateAsset",
         "ActionIndex": 0,
         "Input": {
-          "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-          "memo": "",
-          "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
-          "value": 5000000000
+          "asset_type": 0,
+          "decimals": 0,
+          "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "max_supply": 0,
+          "metadata": "test",
+          "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "name": "Kiran",
+          "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "symbol": "KP1"
         },
         "Output": {
-          "receiver_balance": 5000000000,
-          "sender_balance": 852999994999951500
+          "asset_balance": 0,
+          "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+          "nft_id": ""
         },
-        "Timestamp": "2024-12-02T21:48:37Z"
+        "Timestamp": "2024-12-03T21:17:28Z"
       }
     ]
     ```
@@ -521,17 +593,18 @@ The REST API is available at `http://localhost:8080`.
   - **Parameters**:
     - Limit (optional): Number of actions to return (default: 10).
     - offset (optional): Offset for pagination (default: 0).
-  - **Example**: `curl http://localhost:8080/actions/user/006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840`
+  - **Example**: `curl http://localhost:8080/actions/user/0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9`
   - **Output**:
 
     ```bash
     {
-      "counter": 1,
+      "counter": 2,
       "items": [
         {
-          "ID": 1,
-          "TxHash": "UrQ1r61PUjQuq9DzGZLjomSeVYt1SGhiNTrdYRA98RrXNciSy",
+          "ID": 3,
+          "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
           "ActionType": 0,
+          "ActionName": "Transfer",
           "ActionIndex": 0,
           "Input": {
             "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
@@ -541,9 +614,148 @@ The REST API is available at `http://localhost:8080`.
           },
           "Output": {
             "receiver_balance": 5000000000,
-            "sender_balance": 852999994999951500
+            "sender_balance": 852999994999876700
           },
-          "Timestamp": "2024-12-03T16:20:53Z"
+          "Timestamp": "2024-12-03T21:18:36Z"
+        },
+        {
+          "ID": 1,
+          "TxHash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+          "ActionType": 4,
+          "ActionName": "CreateAsset",
+          "ActionIndex": 0,
+          "Input": {
+            "asset_type": 0,
+            "decimals": 0,
+            "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "max_supply": 0,
+            "metadata": "test",
+            "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "name": "Kiran",
+            "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+            "symbol": "KP1"
+          },
+          "Output": {
+            "asset_balance": 0,
+            "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+            "nft_id": ""
+          },
+          "Timestamp": "2024-12-03T21:17:28Z"
+        }
+      ]
+    }
+    ```
+
+#### Assets Endpoints
+
+- **Get All Assets**
+
+  - **Endpoint**: `/assets`
+  - **Description**: Retrieve all assets stored in the database with pagination.
+  - **Parameters**:
+    - limit (optional): Number of assets to return (default: 10).
+    - offset (optional): Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/assets?limit=5&offset=0"`
+  - **Output**:
+
+    ```json
+    {
+      "counter": 1,
+      "items": [
+        {
+          "id": 1,
+          "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+          "asset_type_id": 0,
+          "asset_type": "fungible",
+          "asset_creator": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "tx_hash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+          "name": "Kiran",
+          "symbol": "KP1",
+          "decimals": 0,
+          "metadata": "test",
+          "max_supply": 0,
+          "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "timestamp": "2024-12-03T21:17:28Z"
+        }
+      ]
+    }
+    ```
+
+- **Get Assets by Type**
+
+  - **Endpoint**: `/assets/type/:type`
+  - **Description**: Retrieve all assets of a specific type.
+  - **Path Parameters**:
+    - type: Asset type ID (0 = fungible, 1 = non-fungible, 2 = fractional).
+  - **Parameters**:
+    - limit (optional): Number of assets to return (default: 10).
+    - offset (optional): Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/assets/type/0?limit=5&offset=0"`
+  - **Output**:
+
+    ```json
+    {
+      "counter": 1,
+      "items": [
+        {
+          "id": 1,
+          "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+          "asset_type_id": 0,
+          "asset_type": "fungible",
+          "asset_creator": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "tx_hash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+          "name": "Kiran",
+          "symbol": "KP1",
+          "decimals": 0,
+          "metadata": "test",
+          "max_supply": 0,
+          "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "timestamp": "2024-12-03T21:17:28Z"
+        }
+      ]
+    }
+    ```
+
+- **Get Assets by User**
+
+  - **Endpoint**: `/assets/user/:user`
+  - **Description**: Retrieve all assets created by a specific user.
+  - **Path Parameters**:
+    - user: The user's address (supports both plain and 0x-prefixed addresses).
+  - **Parameters**:
+    - limit (optional): Number of assets to return (default: 10).
+    - offset (optional): Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/assets/user/00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9?limit=5&offset=0"`
+  - **Output**:
+
+    ```json
+    {
+      "counter": 1,
+      "items": [
+        {
+          "id": 1,
+          "asset_id": "00e751a0142a82aae56048bcc35d61bf23a43a364ba2dd76f72fddf75764b6f75f",
+          "asset_type_id": 0,
+          "asset_type": "fungible",
+          "asset_creator": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "tx_hash": "2KGTRrhqvSzBjQDfSA8JHFJvPXmLnxzdKUdNASeYcgRSqFGGrh",
+          "name": "Kiran",
+          "symbol": "KP1",
+          "decimals": 0,
+          "metadata": "test",
+          "max_supply": 0,
+          "mint_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "pause_unpause_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "freeze_unfreeze_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "enable_disable_kyc_account_admin": "0x00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+          "timestamp": "2024-12-03T21:17:28Z"
         }
       ]
     }

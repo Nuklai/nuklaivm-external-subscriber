@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ func GetGenesisData(db *sql.DB) gin.HandlerFunc {
 
 		var parsedData map[string]interface{}
 		if err := json.Unmarshal([]byte(genesisData), &parsedData); err != nil {
+			log.Printf("Error fetching genesis data: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to parse genesis data"})
 			return
 		}

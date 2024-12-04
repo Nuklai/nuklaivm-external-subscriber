@@ -61,12 +61,32 @@ func CreateSchema(db *sql.DB) error {
 		id SERIAL PRIMARY KEY,
 		tx_hash TEXT NOT NULL,
 		action_type SMALLINT NOT NULL,
+		action_name TEXT,
 		action_index INT NOT NULL,
 		input JSON,
     output JSON,
 		timestamp TIMESTAMP NOT NULL,
 		UNIQUE (tx_hash, action_type, action_index)
 	);
+
+  CREATE TABLE IF NOT EXISTS assets (
+    id SERIAL PRIMARY KEY,
+    asset_id TEXT NOT NULL UNIQUE,
+    asset_type_id SMALLINT NOT NULL,
+    asset_type TEXT NOT NULL,
+    asset_creator TEXT NOT NULL,
+    tx_hash TEXT NOT NULL,
+    name TEXT,
+    symbol TEXT,
+    decimals INT,
+    metadata TEXT,
+    max_supply NUMERIC,
+    mint_admin TEXT,
+    pause_unpause_admin TEXT,
+    freeze_unfreeze_admin TEXT,
+    enable_disable_kyc_account_admin TEXT,
+    timestamp TIMESTAMP NOT NULL
+);
 
 	CREATE TABLE IF NOT EXISTS genesis_data (
 		id SERIAL PRIMARY KEY,
@@ -75,10 +95,16 @@ func CreateSchema(db *sql.DB) error {
 
 	CREATE INDEX IF NOT EXISTS idx_block_height ON blocks(block_height);
 	CREATE INDEX IF NOT EXISTS idx_block_hash ON blocks(block_hash);
+
 	CREATE INDEX IF NOT EXISTS idx_tx_hash ON transactions(tx_hash);
 	CREATE INDEX IF NOT EXISTS idx_transactions_block_hash ON transactions(block_hash);
 	CREATE INDEX IF NOT EXISTS idx_sponsor ON transactions(sponsor);
+
 	CREATE INDEX IF NOT EXISTS idx_action_type ON actions(action_type);
+
+	CREATE INDEX IF NOT EXISTS idx_assets_creator ON assets(asset_creator);
+  CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
+	CREATE INDEX IF NOT EXISTS idx_asset_id ON assets(asset_id);
 	`
 
 	_, err := db.Exec(schema)

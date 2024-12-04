@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"strconv"
 )
 
@@ -23,6 +24,7 @@ type Transaction struct {
 func FetchAllTransactions(db *sql.DB, limit, offset string) ([]Transaction, error) {
 	rows, err := db.Query(`SELECT * FROM transactions ORDER BY timestamp DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -38,6 +40,7 @@ func FetchTransactionByHash(db *sql.DB, txHash string) (Transaction, error) {
 	err := db.QueryRow(`SELECT * FROM transactions WHERE tx_hash = $1`, txHash).Scan(
 		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return tx, err
 	}
 
@@ -70,6 +73,7 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	// Execute the query
 	rows, err := db.Query(query, blockIdentifier)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -86,6 +90,7 @@ func FetchTransactionsByUser(db *sql.DB, user, limit, offset string) ([]Transact
         LIMIT $2 OFFSET $3
     `, user, limit, offset)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()

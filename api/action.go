@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strings"
 
@@ -26,6 +27,7 @@ func GetAllActions(db *sql.DB) gin.HandlerFunc {
 		// Fetch paginated actions
 		actions, err := models.FetchAllActions(db, limit, offset)
 		if err != nil {
+			log.Printf("Error fetching actions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions"})
 			return
 		}
@@ -45,6 +47,7 @@ func GetActionsByBlock(db *sql.DB) gin.HandlerFunc {
 
 		actions, err := models.FetchActionsByBlock(db, blockIdentifier)
 		if err != nil {
+			log.Printf("Error fetching actions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions"})
 			return
 		}
@@ -60,6 +63,7 @@ func GetActionsByTransactionHash(db *sql.DB) gin.HandlerFunc {
 
 		actions, err := models.FetchActionsByTransactionHash(db, txHash)
 		if err != nil {
+			log.Printf("Error fetching actions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions"})
 			return
 		}
@@ -88,6 +92,7 @@ func GetActionsByUser(db *sql.DB) gin.HandlerFunc {
             WHERE transactions.sponsor = $1
         `, user).Scan(&totalCount)
 		if err != nil {
+			log.Printf("Error fetching actions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count actions for user"})
 			return
 		}

@@ -9,3 +9,6 @@ pkill -f nuklaivm-subscriber
 
 # Stop Docker containers without nuking volumes
 docker-compose down
+
+docker container rm -f nuklaivm-postgres >/dev/null 2>&1
+docker container rm -f nuklaivm-subscriber >/dev/null 2>&1

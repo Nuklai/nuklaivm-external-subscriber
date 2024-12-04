@@ -6,10 +6,6 @@ services:
   nuklaivm-postgres:
     image: postgres:14
     container_name: nuklaivm-postgres
-    environment:
-      POSTGRES_USER: 'postgres'
-      POSTGRES_PASSWORD: 'postgres'
-      POSTGRES_DB: 'nuklaivm'
     ports:
       - '5432:5432'
     networks:

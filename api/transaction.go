@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strings"
 
@@ -26,6 +27,7 @@ func GetAllTransactions(db *sql.DB) gin.HandlerFunc {
 		// Fetch paginated transactions
 		transactions, err := models.FetchAllTransactions(db, limit, offset)
 		if err != nil {
+			log.Printf("Error fetching transactions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transactions"})
 			return
 		}
@@ -45,6 +47,7 @@ func GetTransactionByHash(db *sql.DB) gin.HandlerFunc {
 
 		transaction, err := models.FetchTransactionByHash(db, txHash)
 		if err != nil {
+			log.Printf("Error fetching transaction: %v", err)
 			c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
 			return
 		}
@@ -60,6 +63,7 @@ func GetTransactionsByBlock(db *sql.DB) gin.HandlerFunc {
 
 		transactions, err := models.FetchTransactionsByBlock(db, blockIdentifier)
 		if err != nil {
+			log.Printf("Error fetching transactions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transactions"})
 			return
 		}
@@ -90,6 +94,7 @@ func GetTransactionsByUser(db *sql.DB) gin.HandlerFunc {
 		// Fetch paginated transactions for the user
 		transactions, err := models.FetchTransactionsByUser(db, user, limit, offset)
 		if err != nil {
+			log.Printf("Error fetching transactions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transactions for user"})
 			return
 		}

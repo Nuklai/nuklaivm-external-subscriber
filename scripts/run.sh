@@ -18,6 +18,8 @@ fi
 # Stop and clean up previous containers and resources
 echo "Stopping and cleaning up previous containers..."
 docker-compose down -v --remove-orphans
+docker container rm -f nuklaivm-postgres >/dev/null 2>&1
+docker container rm -f nuklaivm-subscriber >/dev/null 2>&1
 
 ensure_network() {
   if ! docker network inspect nuklaivm-network >/dev/null 2>&1; then

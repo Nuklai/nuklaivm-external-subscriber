@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"log"
 	"strconv"
 )
 
@@ -22,6 +23,7 @@ type Block struct {
 func FetchAllBlocks(db *sql.DB, limit, offset string) ([]Block, error) {
 	rows, err := db.Query(`SELECT * FROM blocks ORDER BY block_height DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
+		log.Printf("Database query error: %v", err)
 		return nil, err
 	}
 	defer rows.Close()

@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/nuklai/nuklaivm-external-subscriber/models"
@@ -26,6 +27,7 @@ func GetAllBlocks(db *sql.DB) gin.HandlerFunc {
 		// Fetch paginated blocks
 		blocks, err := models.FetchAllBlocks(db, limit, offset)
 		if err != nil {
+			log.Printf("Error fetching blocks: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve blocks"})
 			return
 		}
@@ -45,6 +47,7 @@ func GetBlock(db *sql.DB) gin.HandlerFunc {
 		block, err := models.FetchBlock(db, blockIdentifier)
 		// Check for query errors
 		if err != nil {
+			log.Printf("Error fetching block: %v", err)
 			c.JSON(http.StatusNotFound, gin.H{"error": "Block not found"})
 			return
 		}
