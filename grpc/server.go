@@ -1,9 +1,13 @@
+// Copyright (C) 2024, Nuklai. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package grpc
 
 import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net"
 	"strings"
@@ -31,8 +35,14 @@ type Server struct {
 	parser chain.Parser
 }
 
-// startGRPCServer starts the gRPC server for receiving block data
-func StartGRPCServer(db *sql.DB, port string) {
+// StartGRPCServer starts the gRPC server for receiving block data
+func StartGRPCServer(db *sql.DB, port string) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in StartGRPCServer: %v", r)
+		}
+	}()
+
 	// Load the whitelist
 	LoadWhitelist()
 
@@ -43,7 +53,8 @@ func StartGRPCServer(db *sql.DB, port string) {
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("Failed to listen on port %s: %v", port, err)
+		log.Printf("Failed to listen on port %s: %v", port, err)
+		return err
 	}
 
 	// Use insecure credentials to allow plaintext communication
@@ -60,14 +71,32 @@ func StartGRPCServer(db *sql.DB, port string) {
 	reflection.Register(grpcServer)
 
 	log.Printf("External Subscriber server is listening on port %s...\n", port)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+	return grpcServer.Serve(lis)
+}
+
+// StartGRPCServerWithRetries retries gRPC server startup in case of failure
+func StartGRPCServerWithRetries(db *sql.DB, port string, retries int) {
+	for i := 0; i < retries; i++ {
+		err := StartGRPCServer(db, port)
+		if err != nil {
+			log.Printf("gRPC server failed to start: %v. Retrying (%d/%d)...", err, i+1, retries)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		return // Successful start
 	}
+	log.Fatal("gRPC server failed to start after maximum retries")
 }
 
 // Initialize receives genesis data for initialization and saves it to the database
 // Initialize receives genesis data for initialization and saves it to the database
 func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*emptypb.Empty, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in Initialize: %v", r)
+		}
+	}()
+
 	log.Println("Initializing External Subscriber with genesis data...")
 
 	// Decode genesis data
@@ -108,6 +137,17 @@ func (s *Server) Initialize(ctx context.Context, req *pb.InitializeRequest) (*em
 
 // AcceptBlock processes a new block, saves relevant data to the database, and stores transactions and actions
 func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptypb.Empty, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in AcceptBlock: %v", r)
+		}
+	}()
+
+	if s.parser == nil {
+		log.Println("Parser is not initialized. Rejecting the request.")
+		return nil, errors.New("parser not initialized")
+	}
+
 	blockData := req.GetBlockData()
 
 	// Attempt to unmarshal the executed block using UnmarshalExecutedBlock

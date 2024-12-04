@@ -1,4 +1,6 @@
-// Additional API endpoints to retrieve blockchain-related information from the database
+// Copyright (C) 2024, Nuklai. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package main
 
 import (
@@ -25,10 +27,16 @@ func main() {
 	defer database.Close()
 
 	// Start the gRPC server
-	go grpc.StartGRPCServer(database, "50051")
+	grpcPort := "50051"
+	go grpc.StartGRPCServerWithRetries(database, grpcPort, 60)
 
 	// Setup Gin router
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery())
+
+	r.SetTrustedProxies(nil)
 
 	// Add CORS middleware
 	r.Use(cors.New(cors.Config{
@@ -40,7 +48,7 @@ func main() {
 	}))
 
 	// Health endpoint
-	r.GET("/health", api.HealthCheck())
+	r.GET("/health", api.HealthCheck(":"+grpcPort, database))
 
 	// Other endpoints
 	r.GET("/genesis", api.GetGenesisData(database))

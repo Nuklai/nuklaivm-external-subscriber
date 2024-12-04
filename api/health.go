@@ -1,20 +1,61 @@
+// Copyright (C) 2024, Nuklai. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package api
 
 import (
+	"database/sql"
+	"log"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// HealthCheck performs a comprehensive health check of the subscriber
-func HealthCheck() gin.HandlerFunc {
+// checkGRPC checks the reachability of the gRPC server.
+func checkGRPC(grpcPort string) string {
+	conn, err := net.DialTimeout("tcp", grpcPort, 2*time.Second)
+	if err != nil {
+		log.Printf("gRPC connection failed: %v", err)
+		return "unreachable"
+	}
+	defer conn.Close()
+	return "reachable"
+}
+
+// checkDatabase checks the reachability of the database.
+func checkDatabase(db *sql.DB) string {
+	if err := db.Ping(); err != nil {
+		log.Printf("Database connection failed: %v", err)
+		return "unreachable"
+	}
+	return "reachable"
+}
+
+// HealthCheck performs a comprehensive health check of the subscriber.
+func HealthCheck(grpcPort string, db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// If all checks pass
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
+		grpcStatus := checkGRPC(grpcPort)
+		databaseStatus := checkDatabase(db)
+
+		// Determine the overall status
+		status := "ok"
+		if grpcStatus == "unreachable" || databaseStatus == "unreachable" {
+			status = "service unavailable"
+		}
+
+		// Return the health status
+		httpStatusCode := http.StatusOK
+		if status == "service unavailable" {
+			httpStatusCode = http.StatusServiceUnavailable
+		}
+
+		c.JSON(httpStatusCode, gin.H{
+			"status": status,
 			"details": gin.H{
-				"database": "reachable",
-				"grpc":     "reachable",
+				"database": databaseStatus,
+				"grpc":     grpcStatus,
 			},
 		})
 	}
