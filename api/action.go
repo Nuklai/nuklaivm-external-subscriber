@@ -72,6 +72,69 @@ func GetActionsByTransactionHash(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+// GetActionsByActionType retrieves actions by their action type ID with pagination
+func GetActionsByActionType(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		actionType := c.Param("action_type")
+		limit := c.DefaultQuery("limit", "10")
+		offset := c.DefaultQuery("offset", "0")
+
+		// Get total count of actions for this type
+		var totalCount int
+		err := db.QueryRow(`SELECT COUNT(*) FROM actions WHERE action_type = $1`, actionType).Scan(&totalCount)
+		if err != nil {
+			log.Printf("Error counting actions by type: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count actions"})
+			return
+		}
+
+		// Fetch paginated actions for the type
+		actions, err := models.FetchActionsByType(db, actionType, limit, offset)
+		if err != nil {
+			log.Printf("Error fetching actions by type: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions by action type"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"counter": totalCount,
+			"items":   actions,
+		})
+	}
+}
+
+// GetActionsByActionName retrieves actions by their action name with pagination
+func GetActionsByActionName(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		actionName := c.Param("action_name")
+		actionName = strings.ToLower(actionName)
+		limit := c.DefaultQuery("limit", "10")
+		offset := c.DefaultQuery("offset", "0")
+
+		// Get total count of actions for this name
+		var totalCount int
+		err := db.QueryRow(`SELECT COUNT(*) FROM actions WHERE LOWER(action_name) = $1`, actionName).Scan(&totalCount)
+		if err != nil {
+			log.Printf("Error counting actions by name: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count actions"})
+			return
+		}
+
+		// Fetch paginated actions for the name
+		actions, err := models.FetchActionsByName(db, actionName, limit, offset)
+		if err != nil {
+			log.Printf("Error fetching actions by name: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions by action name"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"counter": totalCount,
+			"items":   actions,
+		})
+	}
+}
+
 // GetActionsByUser retrieves actions for a specific user
 func GetActionsByUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

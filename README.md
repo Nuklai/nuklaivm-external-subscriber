@@ -459,36 +459,6 @@ The REST API is available at `http://localhost:8080`.
 
 #### Action Endpoints
 
-- **Get Actions by Transaction Hash**
-
-  - **Endpoint**: `/actions/:tx_hash`
-  - **Description**: Retrieve actions associated with a specific transaction hash.
-  - **Example**: `curl http://localhost:8080/actions/tx_hash_here`
-  - **Output**:
-
-    ```bash
-    [
-      {
-        "ID": 3,
-        "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
-        "ActionType": 0,
-        "ActionName": "Transfer",
-        "ActionIndex": 0,
-        "Input": {
-          "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-          "memo": "",
-          "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
-          "value": 5000000000
-        },
-        "Output": {
-          "receiver_balance": 5000000000,
-          "sender_balance": 852999994999876700
-        },
-        "Timestamp": "2024-12-03T21:18:36Z"
-      }
-    ]
-    ```
-
 - **Get All Actions**
 
   - **Endpoint**: `/actions`
@@ -549,6 +519,36 @@ The REST API is available at `http://localhost:8080`.
     }
     ```
 
+- **Get Actions by Transaction Hash**
+
+  - **Endpoint**: `/actions/:tx_hash`
+  - **Description**: Retrieve actions associated with a specific transaction hash.
+  - **Example**: `curl http://localhost:8080/actions/tx_hash_here`
+  - **Output**:
+
+    ```bash
+    [
+      {
+        "ID": 3,
+        "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
+        "ActionType": 0,
+        "ActionName": "Transfer",
+        "ActionIndex": 0,
+        "Input": {
+          "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+          "memo": "",
+          "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+          "value": 5000000000
+        },
+        "Output": {
+          "receiver_balance": 5000000000,
+          "sender_balance": 852999994999876700
+        },
+        "Timestamp": "2024-12-03T21:18:36Z"
+      }
+    ]
+    ```
+
 - **Get Actions by Block**
 
   - **Endpoint**: `/actions/block/:identifier`
@@ -584,6 +584,78 @@ The REST API is available at `http://localhost:8080`.
         "Timestamp": "2024-12-03T21:17:28Z"
       }
     ]
+    ```
+
+- **Get Actions by Action Type**
+
+  - **Endpoint**: `/actions/type/:action_type`
+  - **Parameters**:
+    - `action_type`: Action type ID (e.g., 0 for "Transfer").
+    - `limit`: Number of actions to return (default: 10).
+    - `offset`: Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/actions/type/0?limit=5&offset=0"`
+  - **Output**:
+
+    ```bash
+    {
+      "counter": 2,
+      "items": [
+        {
+          "ID": 3,
+          "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
+          "ActionType": 0,
+          "ActionName": "Transfer",
+          "ActionIndex": 0,
+          "Input": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+            "value": 5000000000
+          },
+          "Output": {
+            "receiver_balance": 5000000000,
+            "sender_balance": 852999994999876700
+          },
+          "Timestamp": "2024-12-03T21:18:36Z"
+        }
+      ]
+    }
+    ```
+
+- **Get Actions by Action Name**
+
+  - **Endpoint**: `/actions/name/:action_name`
+  - **Parameters**:
+    - `action_name`: Action name (case-insensitive, e.g., "Transfer").
+    - `limit`: Number of actions to return (default: 10).
+    - `offset`: Offset for pagination (default: 0).
+  - **Example**: `curl "http://localhost:8080/actions/name/transfer?limit=5&offset=0"`
+  - **Output**:
+
+    ```bash
+    {
+      "counter": 2,
+      "items": [
+        {
+          "ID": 3,
+          "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
+          "ActionType": 0,
+          "ActionName": "Transfer",
+          "ActionIndex": 0,
+          "Input": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+            "value": 5000000000
+          },
+          "Output": {
+            "receiver_balance": 5000000000,
+            "sender_balance": 852999994999876700
+          },
+          "Timestamp": "2024-12-03T21:18:36Z"
+        }
+      ]
+    }
     ```
 
 - **Get Actions For a specific user**

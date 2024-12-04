@@ -72,6 +72,36 @@ func FetchActionsByBlock(db *sql.DB, blockIdentifier string) ([]Action, error) {
 	return scanActions(rows)
 }
 
+func FetchActionsByType(db *sql.DB, actionType, limit, offset string) ([]Action, error) {
+	rows, err := db.Query(`
+        SELECT * FROM actions
+        WHERE action_type = $1
+        ORDER BY timestamp DESC
+        LIMIT $2 OFFSET $3`, actionType, limit, offset)
+	if err != nil {
+		log.Printf("Database query error: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanActions(rows)
+}
+
+func FetchActionsByName(db *sql.DB, actionName, limit, offset string) ([]Action, error) {
+	rows, err := db.Query(`
+        SELECT * FROM actions
+        WHERE LOWER(action_name) = $1
+        ORDER BY timestamp DESC
+        LIMIT $2 OFFSET $3`, actionName, limit, offset)
+	if err != nil {
+		log.Printf("Database query error: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanActions(rows)
+}
+
 // FetchActionsByUser retrieves actions by user with pagination
 func FetchActionsByUser(db *sql.DB, user, limit, offset string) ([]Action, error) {
 	rows, err := db.Query(`

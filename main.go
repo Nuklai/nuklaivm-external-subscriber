@@ -4,6 +4,7 @@ package main
 import (
 	"log"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 
@@ -29,6 +30,15 @@ func main() {
 	// Setup Gin router
 	r := gin.Default()
 
+	// Add CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
+		AllowCredentials: true,
+	}))
+
 	// Health endpoint
 	r.GET("/health", api.HealthCheck())
 
@@ -44,9 +54,11 @@ func main() {
 	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))         // Fetch transactions by user with pagination
 
 	r.GET("/actions", api.GetAllActions(database))
-	r.GET("/actions/:tx_hash", api.GetActionsByTransactionHash(database)) // Fetch actions by transaction hash
-	r.GET("/actions/block/:identifier", api.GetActionsByBlock(database))  // Fetch actions by block height or hash
-	r.GET("/actions/user/:user", api.GetActionsByUser(database))          // Fetch actions by user with pagination
+	r.GET("/actions/:tx_hash", api.GetActionsByTransactionHash(database))     // Fetch actions by transaction hash
+	r.GET("/actions/block/:identifier", api.GetActionsByBlock(database))      // Fetch actions by block height or hash
+	r.GET("/actions/type/:action_type", api.GetActionsByActionType(database)) // Fetch actions by action type with pagination
+	r.GET("/actions/name/:action_name", api.GetActionsByActionName(database)) // Fetch actions by action name with pagination
+	r.GET("/actions/user/:user", api.GetActionsByUser(database))              // Fetch actions by user with pagination
 
 	r.GET("/assets", api.GetAllAssets(database))
 	r.GET("/assets/type/:type", api.GetAssetsByType(database)) // Fetch assets by type
