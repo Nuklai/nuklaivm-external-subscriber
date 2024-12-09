@@ -224,41 +224,6 @@ The REST API is available at `http://localhost:8080`.
 
 #### Transaction Endpoints
 
-- **Get Transaction by Hash**
-
-  - **Endpoint**: `/transactions/:tx_hash`
-  - **Example**: `curl http://localhost:8080/transactions/tx_hash_here`
-  - **Output**:
-
-    ```bash
-    {
-      "ID": 3,
-      "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
-      "BlockHash": "2MENB3iJJRJPkvq212sCCrJgAWaWite5CijugKbuf7zEVvVqe7",
-      "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
-      "MaxFee": 53000,
-      "Success": true,
-      "Fee": 48500,
-      "Actions": [
-        {
-          "ActionType": "Transfer",
-          "ActionTypeID": 0,
-          "Input": {
-            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
-            "memo": "",
-            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
-            "value": 5000000000
-          },
-          "Output": {
-            "receiver_balance": 5000000000,
-            "sender_balance": 852999994999876700
-          }
-        }
-      ],
-      "Timestamp": "2024-12-03T21:18:36Z"
-    }
-    ```
-
 - **Get All Transactions**
 
   - **Endpoint**: `/transactions`
@@ -332,6 +297,41 @@ The REST API is available at `http://localhost:8080`.
           "Timestamp": "2024-12-03T21:17:28Z"
         }
       ]
+    }
+    ```
+
+- **Get Transaction by Hash**
+
+  - **Endpoint**: `/transactions/:tx_hash`
+  - **Example**: `curl http://localhost:8080/transactions/tx_hash_here`
+  - **Output**:
+
+    ```bash
+    {
+      "ID": 3,
+      "TxHash": "3cMm96hvrC4Pg6ffKgspodRUCiqqDztYzVumaJtGeD3772hmP",
+      "BlockHash": "2MENB3iJJRJPkvq212sCCrJgAWaWite5CijugKbuf7zEVvVqe7",
+      "Sponsor": "00c4cb545f748a28770042f893784ce85b107389004d6a0e0d6d7518eeae1292d9",
+      "MaxFee": 53000,
+      "Success": true,
+      "Fee": 48500,
+      "Actions": [
+        {
+          "ActionType": "Transfer",
+          "ActionTypeID": 0,
+          "Input": {
+            "asset_address": "0x00cf77495ce1bdbf11e5e45463fad5a862cb6cc0a20e00e658c4ac3355dcdc64bb",
+            "memo": "",
+            "to": "0x006835bfa9c67557da9fe6c7ad69089e17c6cad3e18284e037c78aa307e3c0c840",
+            "value": 5000000000
+          },
+          "Output": {
+            "receiver_balance": 5000000000,
+            "sender_balance": 852999994999876700
+          }
+        }
+      ],
+      "Timestamp": "2024-12-03T21:18:36Z"
     }
     ```
 
@@ -454,6 +454,86 @@ The REST API is available at `http://localhost:8080`.
           "Timestamp": "2024-12-03T21:17:28Z"
         }
       ]
+    }
+    ```
+
+- **Get Aggregated Estimated Fees for different Transactions**
+
+  - **Endpoint**: `/transactions/estimated_fee`
+  - **Description**: Retrieve the average, minimum, and maximum fees for all transaction types and names over a specified time interval.
+  - **Query Parameters**:
+    - `interval` (optional): Time interval for which the estimated fee is calculated (e.g., 1m, 1h, 1d). Default is `1m`.
+  - **Example**: `curl http://localhost:8080/transactions/estimated_fee?interval=1h`
+  - **Output**:
+
+    ```bash
+    {
+      "avg_fee": 61650,
+      "min_fee": 48500,
+      "max_fee": 74800,
+      "tx_count": 2,
+      "fees": [
+        {
+          "action_name": "Transfer",
+          "action_type": 0,
+          "avg_fee": 48500,
+          "max_fee": 48500,
+          "min_fee": 48500,
+          "tx_count": 1
+        },
+        {
+          "action_name": "CreateAsset",
+          "action_type": 4,
+          "avg_fee": 74800,
+          "max_fee": 74800,
+          "min_fee": 74800,
+          "tx_count": 1
+        }
+      ]
+    }
+    ```
+
+- **Get Estimated Fee for different Transactions by action type**
+
+  - **Endpoint**: `/transactions/estimated_fee/action_type/:action_type`
+  - **Description**: Retrieve the average, minimum, and maximum fees for transactions of a specific action type.
+  - **Path Parameters**:
+    - `action_type`: The ID of the action type (e.g., 0 for "Transfer").
+  - **Query Parameters**:
+    - `interval` (optional): Time interval for which the estimated fee is calculated (e.g., 1m, 1h, 1d). Default is `1m`.
+  - **Example**: `curl http://localhost:8080/transactions/estimated_fee/action_type/0?interval=1h`
+  - **Output**:
+
+    ```bash
+    {
+      "action_name": "Transfer",
+      "action_type": 0,
+      "avg_fee": 48500,
+      "max_fee": 48500,
+      "min_fee": 48500,
+      "tx_count": 1
+    }
+    ```
+
+- **Get Estimated Fee for different Transactions by action name**
+
+  - **Endpoint**: `/transactions/estimated_fee/action_name/:action_name`
+  - **Description**: Retrieve the average, minimum, and maximum fees for transactions of a specific action name.
+  - **Path Parameters**:
+    - `action_name`: The name of the action (e.g., "Transfer", "CreateAsset", etc). Case-insensitive.
+  - **Query Parameters**:
+    - `interval` (optional): Time interval for which the estimated fee is calculated (e.g., 1m, 1h, 1d). Default is `1m`.
+  - **Example**: `curl http://localhost:8080/transactions/estimated_fee/action_name/createasset?interval=1h`
+  - **Output**:
+
+    ```bash
+    {
+      "action_name": "CreateAsset",
+      "action_type": 4,
+      "avg_fee": 74800,
+      "max_fee": 74800,
+      "min_fee": 74800,
+      "tx_count": 1
     }
     ```
 

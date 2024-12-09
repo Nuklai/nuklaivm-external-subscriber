@@ -57,9 +57,12 @@ func main() {
 	r.GET("/blocks/:identifier", api.GetBlock(database)) // Fetch by block height or hash
 
 	r.GET("/transactions", api.GetAllTransactions(database))
-	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))            // Fetch by transaction hash
-	r.GET("/transactions/block/:identifier", api.GetTransactionsByBlock(database)) // Fetch transactions by block height or hash
-	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))         // Fetch transactions by user with pagination
+	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))                                      // Fetch by transaction hash
+	r.GET("/transactions/block/:identifier", api.GetTransactionsByBlock(database))                           // Fetch transactions by block height or hash
+	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))                                   // Fetch transactions by user with pagination
+	r.GET("/transactions/estimated_fee/action_type/:action_type", api.GetEstimatedFeeByActionType(database)) // Fetch estimated fee by action type
+	r.GET("/transactions/estimated_fee/action_name/:action_name", api.GetEstimatedFeeByActionName(database)) // Fetch estimated fee by action name
+	r.GET("/transactions/estimated_fee", api.GetAggregateEstimatedFees(database))                            // Fetch aggregate estimated fees
 
 	r.GET("/actions", api.GetAllActions(database))
 	r.GET("/actions/:tx_hash", api.GetActionsByTransactionHash(database))     // Fetch actions by transaction hash

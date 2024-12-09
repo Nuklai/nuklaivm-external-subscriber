@@ -162,7 +162,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	blockHash := executedBlock.BlockID.String()
 	parentHash := blk.Prnt.String()
 	stateRoot := blk.StateRoot.String()
-	timestamp := time.UnixMilli(blk.Tmstmp).Format(time.RFC3339)
+	timestamp := time.UnixMilli(blk.Tmstmp).UTC().Format(time.RFC3339)
 	blockSize := blk.Size()
 	txCount := len(blk.Txs)
 	avgTxSize := 0.0

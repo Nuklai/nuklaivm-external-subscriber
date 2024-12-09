@@ -102,8 +102,10 @@ func CreateSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_tx_hash ON transactions(tx_hash);
 	CREATE INDEX IF NOT EXISTS idx_transactions_block_hash ON transactions(block_hash);
 	CREATE INDEX IF NOT EXISTS idx_sponsor ON transactions(sponsor);
+	CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions (timestamp);
 
 	CREATE INDEX IF NOT EXISTS idx_action_type ON actions(action_type);
+	CREATE INDEX IF NOT EXISTS idx_action_name_lower ON actions (LOWER(action_name));
 
 	CREATE INDEX IF NOT EXISTS idx_assets_creator ON assets(asset_creator);
   CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
