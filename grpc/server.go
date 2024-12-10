@@ -294,17 +294,17 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 					continue
 				}
 				actionOutput := outputs[j]
-				assetID := actionOutput["asset_id"].(string)
+				assetID := actionOutput["asset_address"].(string)
 				assetTypeID := actionInput["asset_type"].(float64)
 				assetType := map[float64]string{0: "fungible", 1: "non-fungible", 2: "fractional"}[assetTypeID]
 
 				// Insert asset into the assets table
 				_, err = s.db.Exec(`
         INSERT INTO assets (
-            asset_id, asset_type_id, asset_type, asset_creator, tx_hash, name, symbol, decimals, metadata, max_supply, mint_admin, pause_unpause_admin, freeze_unfreeze_admin, enable_disable_kyc_account_admin, timestamp
+            asset_address, asset_type_id, asset_type, asset_creator, tx_hash, name, symbol, decimals, metadata, max_supply, mint_admin, pause_unpause_admin, freeze_unfreeze_admin, enable_disable_kyc_account_admin, timestamp
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        ON CONFLICT (asset_id) DO UPDATE
+        ON CONFLICT (asset_address) DO UPDATE
         SET asset_type_id = EXCLUDED.asset_type_id,
             asset_type = EXCLUDED.asset_type,
             asset_creator = EXCLUDED.asset_creator,

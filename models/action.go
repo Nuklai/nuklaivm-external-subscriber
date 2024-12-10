@@ -93,7 +93,7 @@ func FetchActionsByType(db *sql.DB, actionType, limit, offset string) ([]Action,
 func FetchActionsByName(db *sql.DB, actionName, limit, offset string) ([]Action, error) {
 	rows, err := db.Query(`
         SELECT * FROM actions
-        WHERE LOWER(action_name) = $1
+        WHERE action_name ILIKE $1
         ORDER BY timestamp DESC
         LIMIT $2 OFFSET $3`, actionName, limit, offset)
 	if err != nil {
@@ -111,10 +111,10 @@ func FetchActionsByUser(db *sql.DB, user, limit, offset string) ([]Action, error
         SELECT actions.*
         FROM actions
         INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
-        WHERE transactions.sponsor = $1
+        WHERE transactions.sponsor ILIKE $1
         ORDER BY actions.timestamp DESC
         LIMIT $2 OFFSET $3
-    `, user, limit, offset)
+    `, "%"+user+"%", limit, offset)
 	if err != nil {
 		log.Printf("Database query error: %v", err)
 		return nil, err

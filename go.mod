@@ -7,7 +7,7 @@ require (
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/lib/pq v1.10.9
-	github.com/nuklai/nuklaivm v0.1.3-0.20241031182233-374630b3e50d
+	github.com/nuklai/nuklaivm v0.1.3-0.20241210141437-9fd87b8d476e
 	google.golang.org/grpc v1.62.0
 	google.golang.org/protobuf v1.35.1
 )

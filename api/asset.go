@@ -7,34 +7,46 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nuklai/nuklaivm-external-subscriber/models"
 )
 
-// GetAllAssets retrieves all assets
+// GetAllAssets retrieves all assets with optional filters
 func GetAllAssets(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		assetType := c.Query("type")
+		user := c.Query("user")
+		assetAddress := c.Query("asset_address")
+		name := c.Query("name")
+		symbol := c.Query("symbol")
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
 
-		// Get total count of assets
-		var totalCount int
-		err := db.QueryRow(`SELECT COUNT(*) FROM assets`).Scan(&totalCount)
+		// Normalize user to search with and without "0x" prefix
+		if user != "" {
+			user = strings.TrimPrefix(user, "0x")
+		}
+		if assetAddress != "" {
+			assetAddress = strings.TrimPrefix(assetAddress, "0x")
+		}
+
+		// Get total count with filters
+		totalCount, err := models.CountFilteredAssets(db, assetType, user, assetAddress, name, symbol)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count assets"})
 			return
 		}
 
-		// Fetch paginated actions
-		assets, err := models.FetchAllAssets(db, limit, offset)
+		// Fetch filtered assets with pagination
+		assets, err := models.FetchFilteredAssets(db, assetType, user, assetAddress, name, symbol, limit, offset)
 		if err != nil {
 			log.Printf("Error fetching assets: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve assets"})
 			return
 		}
 
-		// Return response with counter
 		c.JSON(http.StatusOK, gin.H{
 			"counter": totalCount,
 			"items":   assets,
@@ -80,9 +92,11 @@ func GetAssetsByUser(db *sql.DB) gin.HandlerFunc {
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
 
+		user = strings.TrimPrefix(user, "0x")
+
 		// Get total count of assets created by user
 		var totalCount int
-		err := db.QueryRow(`SELECT COUNT(*) FROM assets WHERE asset_creator = $1`, user).Scan(&totalCount)
+		err := db.QueryRow(`SELECT COUNT(*) FROM assets WHERE asset_creator ILIKE $1`, "%"+user+"%").Scan(&totalCount)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count assets for user"})
 			return
@@ -101,5 +115,22 @@ func GetAssetsByUser(db *sql.DB) gin.HandlerFunc {
 			"counter": totalCount,
 			"items":   assets,
 		})
+	}
+}
+
+// GetAssetByAddress retrieves a specific asset by its asset address
+func GetAssetByAddress(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		assetAddress := c.Param("asset_address")
+
+		assetAddress = strings.TrimPrefix(assetAddress, "0x")
+
+		asset, err := models.FetchAssetByAddress(db, assetAddress)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Asset not found"})
+			return
+		}
+
+		c.JSON(http.StatusOK, asset)
 	}
 }

@@ -116,7 +116,7 @@ func GetActionsByActionName(db *sql.DB) gin.HandlerFunc {
 
 		// Get total count of actions for this name
 		var totalCount int
-		err := db.QueryRow(`SELECT COUNT(*) FROM actions WHERE LOWER(action_name) = $1`, actionName).Scan(&totalCount)
+		err := db.QueryRow(`SELECT COUNT(*) FROM actions WHERE action_name ILIKE $1`, actionName).Scan(&totalCount)
 		if err != nil {
 			log.Printf("Error counting actions by name: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count actions"})
@@ -142,12 +142,11 @@ func GetActionsByActionName(db *sql.DB) gin.HandlerFunc {
 func GetActionsByUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := c.Param("user")
+		limit := c.DefaultQuery("limit", "10")
+		offset := c.DefaultQuery("offset", "0")
 
 		// Normalize the user identifier by removing "0x" prefix if present
 		user = strings.TrimPrefix(user, "0x")
-
-		limit := c.DefaultQuery("limit", "10")
-		offset := c.DefaultQuery("offset", "0")
 
 		// Get total count of user's actions
 		var totalCount int
@@ -155,8 +154,8 @@ func GetActionsByUser(db *sql.DB) gin.HandlerFunc {
             SELECT COUNT(*)
             FROM actions
             INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
-            WHERE transactions.sponsor = $1
-        `, user).Scan(&totalCount)
+            WHERE transactions.sponsor ILIKE $1
+        `, "%"+user+"%").Scan(&totalCount)
 		if err != nil {
 			log.Printf("Error fetching actions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count actions for user"})

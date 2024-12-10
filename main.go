@@ -72,6 +72,7 @@ func main() {
 	r.GET("/actions/user/:user", api.GetActionsByUser(database))              // Fetch actions by user with pagination
 
 	r.GET("/assets", api.GetAllAssets(database))
+	r.GET("/assets/:asset_address", api.GetAssetByAddress(database))
 	r.GET("/assets/type/:type", api.GetAssetsByType(database)) // Fetch assets by type
 	r.GET("/assets/user/:user", api.GetAssetsByUser(database)) // Fetch assets by user
 

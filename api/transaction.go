@@ -13,29 +13,37 @@ import (
 	"github.com/nuklai/nuklaivm-external-subscriber/models"
 )
 
-// GetAllTransactions retrieves all transactions with pagination and total count
+// GetAllTransactions retrieves all transactions with pagination and supports additional filters
 func GetAllTransactions(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		txHash := c.Query("tx_hash")
+		blockHash := c.Query("block_hash")
+		actionType := c.Query("action_type")
+		actionName := strings.ToLower(c.Query("action_name"))
+		user := c.Query("user")
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
 
-		// Get total count of transactions
-		var totalCount int
-		err := db.QueryRow(`SELECT COUNT(*) FROM transactions`).Scan(&totalCount)
+		// Normalize user to search with and without "0x" prefix
+		if user != "" {
+			user = strings.TrimPrefix(user, "0x")
+		}
+
+		// Get total count with filters
+		totalCount, err := models.CountFilteredTransactions(db, txHash, blockHash, actionType, actionName, user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count transactions"})
 			return
 		}
 
-		// Fetch paginated transactions
-		transactions, err := models.FetchAllTransactions(db, limit, offset)
+		// Fetch filtered transactions with pagination
+		transactions, err := models.FetchFilteredTransactions(db, txHash, blockHash, actionType, actionName, user, limit, offset)
 		if err != nil {
 			log.Printf("Error fetching transactions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transactions"})
 			return
 		}
 
-		// Return response with counter
 		c.JSON(http.StatusOK, gin.H{
 			"counter": totalCount,
 			"items":   transactions,
@@ -79,16 +87,15 @@ func GetTransactionsByBlock(db *sql.DB) gin.HandlerFunc {
 func GetTransactionsByUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := c.Param("user")
+		limit := c.DefaultQuery("limit", "10")
+		offset := c.DefaultQuery("offset", "0")
 
 		// Normalize the user identifier by removing "0x" prefix if present
 		user = strings.TrimPrefix(user, "0x")
 
-		limit := c.DefaultQuery("limit", "10")
-		offset := c.DefaultQuery("offset", "0")
-
 		// Get total count of user's transactions
 		var totalCount int
-		err := db.QueryRow(`SELECT COUNT(*) FROM transactions WHERE sponsor = $1`, user).Scan(&totalCount)
+		err := db.QueryRow(`SELECT COUNT(*) FROM transactions WHERE sponsor ILIKE $1`, "%"+user+"%").Scan(&totalCount)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count transactions for user"})
 			return

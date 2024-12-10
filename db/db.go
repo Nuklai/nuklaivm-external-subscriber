@@ -74,7 +74,7 @@ func CreateSchema(db *sql.DB) error {
 
   CREATE TABLE IF NOT EXISTS assets (
     id SERIAL PRIMARY KEY,
-    asset_id TEXT NOT NULL UNIQUE,
+    asset_address TEXT NOT NULL UNIQUE,
     asset_type_id SMALLINT NOT NULL,
     asset_type TEXT NOT NULL,
     asset_creator TEXT NOT NULL,
@@ -109,7 +109,7 @@ func CreateSchema(db *sql.DB) error {
 
 	CREATE INDEX IF NOT EXISTS idx_assets_creator ON assets(asset_creator);
   CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
-	CREATE INDEX IF NOT EXISTS idx_asset_id ON assets(asset_id);
+	CREATE INDEX IF NOT EXISTS idx_asset_address ON assets(asset_address);
 	`
 
 	_, err := db.Exec(schema)
