@@ -68,6 +68,10 @@
           "valueFrom": "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/${ENVIRONMENT}/${PRODUCT}/${APPLICATION}/db_password"
         },
         {
+          "name": "DB_RESET",
+          "valueFrom": "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/${ENVIRONMENT}/${PRODUCT}/${APPLICATION}/db_reset"
+        },
+        {
           "name": "GRPC_WHITELISTED_BLOCKCHAIN_NODES",
           "valueFrom": "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/${ENVIRONMENT}/${PRODUCT}/${APPLICATION}/grpc_whitelisted_blockchain_nodes"
         }

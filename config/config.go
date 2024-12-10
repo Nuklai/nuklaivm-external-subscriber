@@ -16,12 +16,12 @@ import (
 func GetDatabaseURL() string {
 	// Retrieve env variable for DB_HOST and set default value if not present
 
-	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "postgres")
-	password := getEnv("DB_PASSWORD", "postgres")
-	dbName := getEnv("DB_NAME", "nuklaivm")
-	sslMode := getEnv("DB_SSL_MODE", "disable")
+	host := GetEnv("DB_HOST", "localhost")
+	port := GetEnv("DB_PORT", "5432")
+	user := GetEnv("DB_USER", "postgres")
+	password := GetEnv("DB_PASSWORD", "postgres")
+	dbName := GetEnv("DB_NAME", "nuklaivm")
+	sslMode := GetEnv("DB_SSL_MODE", "disable")
 
 	// Encode password to handle special characters
 	encodedPassword := url.QueryEscape(password)
@@ -36,7 +36,7 @@ func GetDatabaseURL() string {
 // and resolves domain names to IPs.
 // GetWhitelistIPs retrieves the list of whitelisted IPs and CIDR ranges
 func GetWhitelistIPs() ([]string, []string) {
-	ipList := getEnv("GRPC_WHITELISTED_BLOCKCHAIN_NODES", "127.0.0.1,localhost,::1")
+	ipList := GetEnv("GRPC_WHITELISTED_BLOCKCHAIN_NODES", "127.0.0.1,localhost,::1")
 	entries := strings.Split(ipList, ",")
 
 	whitelistIPs := []string{}
@@ -63,9 +63,9 @@ func GetWhitelistIPs() ([]string, []string) {
 	return uniqueStrings(whitelistIPs), uniqueStrings(whitelistCIDRs)
 }
 
-// getEnv retrieves the value of the environment variable named by the key.
+// GetEnv retrieves the value of the environment variable named by the key.
 // If the variable is not present, it returns the default value.
-func getEnv(key, defaultValue string) string {
+func GetEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}

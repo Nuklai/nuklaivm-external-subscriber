@@ -9,6 +9,7 @@ import (
 	"log"
 
 	_ "github.com/lib/pq"
+	"github.com/nuklai/nuklaivm-external-subscriber/config"
 )
 
 // InitDB initializes the database connection and creates the schema if it doesn't exist
@@ -23,6 +24,18 @@ func InitDB(connStr string) (*sql.DB, error) {
 	}
 
 	log.Println("Database connection established")
+
+	reset := config.GetEnv("DB_RESET", "false") == "true"
+	if reset {
+		// Drop all existing tables
+		log.Println("Resetting the database...")
+		_, err := db.Exec(`
+			DROP TABLE IF EXISTS blocks, transactions, actions, assets, genesis_data CASCADE;
+		`)
+		if err != nil {
+			return nil, fmt.Errorf("error resetting the database: %w", err)
+		}
+	}
 
 	// Ensure schema is created
 	if err := CreateSchema(db); err != nil {
