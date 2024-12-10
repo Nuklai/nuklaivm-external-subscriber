@@ -182,7 +182,7 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 
 		// Drop all tables
 		_, err := s.db.Exec(`
-			DROP TABLE IF EXISTS actions, transactions, blocks CASCADE;
+			DROP TABLE IF EXISTS blocks, transactions, actions, assets CASCADE;
 		`)
 		if err != nil {
 			log.Printf("Error dropping existing tables: %v\n", err)
