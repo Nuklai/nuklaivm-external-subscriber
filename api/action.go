@@ -154,7 +154,18 @@ func GetActionsByUser(db *sql.DB) gin.HandlerFunc {
             SELECT COUNT(*)
             FROM actions
             INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
-            WHERE transactions.sponsor ILIKE $1
+            WHERE
+                transactions.sponsor ILIKE $1
+                OR EXISTS (
+                    SELECT 1
+                    FROM unnest(transactions.actors) AS actor
+                    WHERE actor ILIKE $1
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM unnest(transactions.receivers) AS receiver
+                    WHERE receiver ILIKE $1
+                )
         `, "%"+user+"%").Scan(&totalCount)
 		if err != nil {
 			log.Printf("Error fetching actions: %v", err)
@@ -165,6 +176,7 @@ func GetActionsByUser(db *sql.DB) gin.HandlerFunc {
 		// Fetch paginated actions for the user
 		actions, err := models.FetchActionsByUser(db, user, limit, offset)
 		if err != nil {
+			log.Printf("Error fetching actions: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve actions for user"})
 			return
 		}

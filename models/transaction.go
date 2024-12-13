@@ -11,6 +11,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 type Transaction struct {
@@ -18,6 +20,8 @@ type Transaction struct {
 	TxHash    string                   `json:"TxHash"`
 	BlockHash string                   `json:"BlockHash"`
 	Sponsor   string                   `json:"Sponsor"`
+	Actors    []string                 `json:"Actors"`
+	Receivers []string                 `json:"Receivers"`
 	MaxFee    float64                  `json:"MaxFee"`
 	Success   bool                     `json:"Success"`
 	Fee       uint64                   `json:"Fee"`
@@ -95,9 +99,22 @@ func buildTransactionFilterQuery(selectFields, txHash, blockHash, actionType, ac
 		argCounter++
 	}
 
-	// Filter by user (sponsor)
+	// Filter by user (sponsor or actor or receiver)
 	if user != "" {
-		query += fmt.Sprintf(" AND sponsor ILIKE $%d", argCounter)
+		query += fmt.Sprintf(`
+			AND (
+				sponsor ILIKE $%d
+				OR EXISTS (
+					SELECT 1
+					FROM unnest(actors) AS actor
+					WHERE actor ILIKE $%d
+				)
+				OR EXISTS (
+					SELECT 1
+					FROM unnest(receivers) AS receiver
+					WHERE receiver ILIKE $%d
+				)
+			)`, argCounter, argCounter, argCounter)
 		args = append(args, "%"+user+"%")
 		argCounter++
 	}
@@ -110,8 +127,12 @@ func FetchTransactionByHash(db *sql.DB, txHash string) (Transaction, error) {
 	var tx Transaction
 	var actionsJSON []byte
 
-	err := db.QueryRow(`SELECT * FROM transactions WHERE tx_hash = $1`, txHash).Scan(
-		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp)
+	err := db.QueryRow(`
+        SELECT id, tx_hash, block_hash, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
+        FROM transactions WHERE tx_hash = $1`, txHash).Scan(
+		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor,
+		pq.Array(&tx.Actors), pq.Array(&tx.Receivers),
+		&tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp)
 	if err != nil {
 		log.Printf("Database query error: %v", err)
 		return tx, err
@@ -131,14 +152,14 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
 		// blockIdentifier is a block height
 		query = `
-			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.max_fee, transactions.success, transactions.fee, transactions.actions, transactions.timestamp
+			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.actors, transactions.receivers, transactions.max_fee, transactions.success, transactions.fee, transactions.actions, transactions.timestamp
 			FROM transactions
 			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
 			WHERE blocks.block_height = $1`
 	} else {
 		// blockIdentifier is a block hash
 		query = `
-			SELECT id, tx_hash, block_hash, sponsor, max_fee, success, fee, actions, timestamp
+			SELECT id, tx_hash, block_hash, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
 			FROM transactions
 			WHERE block_hash = $1`
 	}
@@ -154,14 +175,27 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	return scanTransactions(rows)
 }
 
-// FetchTransactionsByUser retrieves transactions by user (sponsor) with pagination
+// FetchTransactionsByUser retrieves transactions by user (sponsor or actor or receiver) with pagination
 func FetchTransactionsByUser(db *sql.DB, user, limit, offset string) ([]Transaction, error) {
+	normalizedUser := "%" + strings.TrimPrefix(user, "0x") + "%"
+
 	rows, err := db.Query(`
-        SELECT * FROM transactions
-        WHERE sponsor ILIKE $1
-        ORDER BY timestamp DESC
-        LIMIT $2 OFFSET $3
-    `, "%"+user+"%", limit, offset)
+		SELECT id, tx_hash, block_hash, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
+		FROM transactions
+		WHERE sponsor ILIKE $1
+		   OR EXISTS (
+			   SELECT 1
+			   FROM unnest(actors) AS actor
+			   WHERE actor ILIKE $1
+		   )
+		   OR EXISTS (
+			   SELECT 1
+			   FROM unnest(receivers) AS receiver
+			   WHERE receiver ILIKE $1
+		   )
+		ORDER BY timestamp DESC
+		LIMIT $2 OFFSET $3
+	`, normalizedUser, limit, offset)
 	if err != nil {
 		log.Printf("Database query error: %v", err)
 		return nil, err
@@ -178,7 +212,10 @@ func scanTransactions(rows *sql.Rows) ([]Transaction, error) {
 	for rows.Next() {
 		var tx Transaction
 		var actionsJSON []byte
-		if err := rows.Scan(&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor, &tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp); err != nil {
+		if err := rows.Scan(
+			&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor,
+			pq.Array(&tx.Actors), pq.Array(&tx.Receivers),
+			&tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(actionsJSON, &tx.Actions); err != nil {

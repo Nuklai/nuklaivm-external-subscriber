@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log"
 	"strconv"
+	"strings"
 )
 
 type Action struct {
@@ -107,14 +108,27 @@ func FetchActionsByName(db *sql.DB, actionName, limit, offset string) ([]Action,
 
 // FetchActionsByUser retrieves actions by user with pagination
 func FetchActionsByUser(db *sql.DB, user, limit, offset string) ([]Action, error) {
+	normalizedUser := "%" + strings.TrimPrefix(user, "0x") + "%"
+
 	rows, err := db.Query(`
         SELECT actions.*
         FROM actions
         INNER JOIN transactions ON actions.tx_hash = transactions.tx_hash
-        WHERE transactions.sponsor ILIKE $1
+        WHERE
+            transactions.sponsor ILIKE $1
+            OR EXISTS (
+                SELECT 1
+                FROM unnest(transactions.actors) AS actor
+                WHERE actor ILIKE $1
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM unnest(transactions.receivers) AS receiver
+                WHERE receiver ILIKE $1
+            )
         ORDER BY actions.timestamp DESC
         LIMIT $2 OFFSET $3
-    `, "%"+user+"%", limit, offset)
+    `, normalizedUser, limit, offset)
 	if err != nil {
 		log.Printf("Database query error: %v", err)
 		return nil, err

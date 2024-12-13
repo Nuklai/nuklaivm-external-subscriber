@@ -48,6 +48,9 @@ func InitDB(connStr string) (*sql.DB, error) {
 // CreateSchema creates the database schema if it doesn't already exist
 func CreateSchema(db *sql.DB) error {
 	schema := `
+	-- Ensure the pg_trgm extension is enabled for GIN indexes
+	CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 	CREATE TABLE IF NOT EXISTS blocks (
 			block_height BIGINT PRIMARY KEY,
 			block_hash TEXT NOT NULL,
@@ -66,6 +69,8 @@ func CreateSchema(db *sql.DB) error {
 		tx_hash TEXT UNIQUE NOT NULL,
 		block_hash TEXT,
 		sponsor TEXT,
+		actors TEXT[],
+		receivers TEXT[],
 		max_fee NUMERIC,
 		success BOOLEAN,
 		fee NUMERIC,
@@ -116,6 +121,8 @@ func CreateSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_transactions_block_hash ON transactions(block_hash);
 	CREATE INDEX IF NOT EXISTS idx_sponsor ON transactions(sponsor);
 	CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions (timestamp);
+	CREATE INDEX IF NOT EXISTS idx_actors ON transactions USING GIN (actors);
+	CREATE INDEX IF NOT EXISTS idx_receivers ON transactions USING GIN (receivers);
 
 	CREATE INDEX IF NOT EXISTS idx_action_type ON actions(action_type);
 	CREATE INDEX IF NOT EXISTS idx_action_name_lower ON actions (LOWER(action_name));

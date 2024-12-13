@@ -17,6 +17,7 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 	pb "github.com/ava-labs/hypersdk/proto/pb/externalsubscriber"
+	"github.com/lib/pq"
 	"github.com/nuklai/nuklaivm-external-subscriber/consts"
 	subscriberDB "github.com/nuklai/nuklaivm-external-subscriber/db"
 	"github.com/nuklai/nuklaivm/vm"
@@ -209,6 +210,8 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 		success := false
 
 		actions := []map[string]interface{}{}
+		actors := make(map[string]struct{})
+		receivers := make(map[string]struct{})
 
 		if i < len(executedBlock.Results) {
 			result := executedBlock.Results[i]
@@ -226,6 +229,16 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 							var outputMap map[string]interface{}
 							json.Unmarshal(outputJSON, &outputMap)
 							outputs = append(outputs, outputMap)
+
+							// Add actor and receiver to uniqueParticipants and individual maps
+							if actor, ok := outputMap["actor"].(string); ok && actor != "" {
+								uniqueParticipants[actor] = struct{}{}
+								actors[actor] = struct{}{}
+							}
+							if receiver, ok := outputMap["receiver"].(string); ok && receiver != "" {
+								uniqueParticipants[receiver] = struct{}{}
+								receivers[receiver] = struct{}{}
+							}
 						}
 					}
 				}
@@ -274,59 +287,15 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 
 			// Save the action in the actions table
 			_, err := s.db.Exec(`
-					INSERT INTO actions (tx_hash, action_type, action_name, action_index, input, output, timestamp)
-					VALUES ($1, $2, $3, $4, $5::json, $6::json, $7)
-					ON CONFLICT (tx_hash, action_type, action_index) DO UPDATE
-					SET input = EXCLUDED.input,
-							output = EXCLUDED.output,
-							timestamp = EXCLUDED.timestamp`,
+				INSERT INTO actions (tx_hash, action_type, action_name, action_index, input, output, timestamp)
+				VALUES ($1, $2, $3, $4, $5::json, $6::json, $7)
+				ON CONFLICT (tx_hash, action_type, action_index) DO UPDATE
+				SET input = EXCLUDED.input,
+						output = EXCLUDED.output,
+						timestamp = EXCLUDED.timestamp`,
 				txID, actionType, actionName, j, actionInputJSON, actionOutputsJSON, timestamp)
 			if err != nil {
 				log.Printf("Error saving action to database: %v\n", err)
-			}
-
-			if actionType == 4 { // create_asset action
-				// Parse actionInputJSON into map[string]interface{}
-				var actionInput map[string]interface{}
-				err := json.Unmarshal([]byte(actionInputJSON), &actionInput)
-				if err != nil {
-					log.Printf("Error unmarshaling action input: %v\n", err)
-					continue
-				}
-				actionOutput := outputs[j]
-				assetID := actionOutput["asset_address"].(string)
-				assetTypeID := actionInput["asset_type"].(float64)
-				assetType := map[float64]string{0: "fungible", 1: "non-fungible", 2: "fractional"}[assetTypeID]
-
-				// Insert asset into the assets table
-				_, err = s.db.Exec(`
-        INSERT INTO assets (
-            asset_address, asset_type_id, asset_type, asset_creator, tx_hash, name, symbol, decimals, metadata, max_supply, mint_admin, pause_unpause_admin, freeze_unfreeze_admin, enable_disable_kyc_account_admin, timestamp
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        ON CONFLICT (asset_address) DO UPDATE
-        SET asset_type_id = EXCLUDED.asset_type_id,
-            asset_type = EXCLUDED.asset_type,
-            asset_creator = EXCLUDED.asset_creator,
-            tx_hash = EXCLUDED.tx_hash,
-            name = EXCLUDED.name,
-            symbol = EXCLUDED.symbol,
-            decimals = EXCLUDED.decimals,
-            metadata = EXCLUDED.metadata,
-            max_supply = EXCLUDED.max_supply,
-            mint_admin = EXCLUDED.mint_admin,
-            pause_unpause_admin = EXCLUDED.pause_unpause_admin,
-            freeze_unfreeze_admin = EXCLUDED.freeze_unfreeze_admin,
-            enable_disable_kyc_account_admin = EXCLUDED.enable_disable_kyc_account_admin,
-            timestamp = EXCLUDED.timestamp
-    `, assetID, assetTypeID, assetType, sponsor, txID,
-					actionInput["name"], actionInput["symbol"], actionInput["decimals"],
-					actionInput["metadata"], actionInput["max_supply"], actionInput["mint_admin"],
-					actionInput["pause_unpause_admin"], actionInput["freeze_unfreeze_admin"],
-					actionInput["enable_disable_kyc_account_admin"], timestamp)
-				if err != nil {
-					log.Printf("Error saving asset to database: %v\n", err)
-				}
 			}
 		}
 
@@ -337,19 +306,26 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 			continue
 		}
 
+		// Convert actors and receivers to slices of strings
+		actorsSlice := getKeysFromMap(actors)
+		receiversSlice := getKeysFromMap(receivers)
+
 		// Save the transaction with aggregated actions
 		_, err = s.db.Exec(`
-				INSERT INTO transactions (tx_hash, block_hash, sponsor, max_fee, success, fee, actions, timestamp)
-				VALUES ($1, $2, $3, $4, $5, $6, $7::json, $8)
-				ON CONFLICT (tx_hash) DO UPDATE
-				SET block_hash = EXCLUDED.block_hash,
-						sponsor = EXCLUDED.sponsor,
-						max_fee = EXCLUDED.max_fee,
-						success = EXCLUDED.success,
-						fee = EXCLUDED.fee,
-						actions = EXCLUDED.actions,
-						timestamp = EXCLUDED.timestamp`,
-			txID, blockHash, sponsor, tx.MaxFee(), success, fee, actionsJSON, timestamp)
+    INSERT INTO transactions (tx_hash, block_hash, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::json, $10)
+    ON CONFLICT (tx_hash) DO UPDATE
+    SET block_hash = EXCLUDED.block_hash,
+        sponsor = EXCLUDED.sponsor,
+        actors = EXCLUDED.actors,
+        receivers = EXCLUDED.receivers,
+        max_fee = EXCLUDED.max_fee,
+        success = EXCLUDED.success,
+        fee = EXCLUDED.fee,
+        actions = EXCLUDED.actions,
+        timestamp = EXCLUDED.timestamp`,
+			txID, blockHash, sponsor, pq.Array(actorsSlice), pq.Array(receiversSlice),
+			tx.MaxFee(), success, fee, actionsJSON, timestamp)
 		if err != nil {
 			log.Printf("Error saving transaction to database: %v\n", err)
 		}
@@ -376,4 +352,12 @@ func (s *Server) AcceptBlock(ctx context.Context, req *pb.BlockRequest) (*emptyp
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func getKeysFromMap(m map[string]struct{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

@@ -83,19 +83,31 @@ func GetTransactionsByBlock(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// GetTransactionsByUser retrieves transactions for a specific user (sponsor)
+// GetTransactionsByUser retrieves transactions for a specific user (sponsor or actor or receiver)
 func GetTransactionsByUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := c.Param("user")
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
 
-		// Normalize the user identifier by removing "0x" prefix if present
-		user = strings.TrimPrefix(user, "0x")
-
 		// Get total count of user's transactions
 		var totalCount int
-		err := db.QueryRow(`SELECT COUNT(*) FROM transactions WHERE sponsor ILIKE $1`, "%"+user+"%").Scan(&totalCount)
+		err := db.QueryRow(`
+            SELECT COUNT(*)
+            FROM transactions
+            WHERE
+								sponsor ILIKE $1
+								OR EXISTS (
+									SELECT 1
+									FROM unnest(actors) AS actor
+									WHERE actor ILIKE $1
+								)
+								OR EXISTS (
+									SELECT 1
+									FROM unnest(receivers) AS receiver
+									WHERE receiver ILIKE $1
+								)
+        `, "%"+user+"%").Scan(&totalCount)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count transactions for user"})
 			return
