@@ -76,6 +76,9 @@ func main() {
 	r.GET("/assets/type/:type", api.GetAssetsByType(database)) // Fetch assets by type
 	r.GET("/assets/user/:user", api.GetAssetsByUser(database)) // Fetch assets by user
 
+	r.GET("/validator_stake", api.GetAllValidatorStakes(database))
+	r.GET("/validator_stake/:node_id", api.GetValidatorStakeByNodeID(database))
+
 	// Start HTTP server
 	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)

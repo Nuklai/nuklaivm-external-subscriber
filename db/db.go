@@ -107,7 +107,21 @@ func CreateSchema(db *sql.DB) error {
     freeze_unfreeze_admin TEXT,
     enable_disable_kyc_account_admin TEXT,
     timestamp TIMESTAMP NOT NULL
-);
+	);
+
+	CREATE TABLE IF NOT EXISTS validator_stake (
+    id SERIAL PRIMARY KEY,
+    node_id TEXT NOT NULL UNIQUE,
+    actor TEXT NOT NULL,
+    stake_start_block BIGINT NOT NULL,
+    stake_end_block BIGINT NOT NULL,
+    staked_amount BIGINT NOT NULL,
+    delegation_fee_rate BIGINT NOT NULL,
+    reward_address TEXT NOT NULL,
+    tx_hash TEXT NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    UNIQUE (node_id, stake_start_block)
+	);
 
 	CREATE TABLE IF NOT EXISTS genesis_data (
 		id SERIAL PRIMARY KEY,
@@ -130,6 +144,10 @@ func CreateSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_assets_creator ON assets(asset_creator);
   CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
 	CREATE INDEX IF NOT EXISTS idx_asset_address ON assets(asset_address);
+
+	CREATE INDEX IF NOT EXISTS idx_validator_stake_node_id ON validator_stake(node_id);
+	CREATE INDEX IF NOT EXISTS idx_validator_stake_actor ON validator_stake(actor);
+	CREATE INDEX IF NOT EXISTS idx_validator_stake_timestamp ON validator_stake(timestamp);
 	`
 
 	_, err := db.Exec(schema)
