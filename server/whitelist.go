@@ -1,7 +1,7 @@
 // Copyright (C) 2024, Nuklai. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package grpc
+package server
 
 import (
 	"context"
@@ -20,8 +20,8 @@ var (
 	WhitelistedCIDRs []*net.IPNet
 )
 
-// LoadWhitelist loads the whitelist using the config package
-func LoadWhitelist() {
+// loadWhitelist loads the whitelist using the config package
+func loadWhitelist() {
 	ips, cidrs := config.GetWhitelistIPs()
 
 	// Load individual IPs

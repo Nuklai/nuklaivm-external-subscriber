@@ -13,7 +13,7 @@ import (
 	"github.com/nuklai/nuklaivm-external-subscriber/api"
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
 	"github.com/nuklai/nuklaivm-external-subscriber/db"
-	"github.com/nuklai/nuklaivm-external-subscriber/grpc"
+	"github.com/nuklai/nuklaivm-external-subscriber/server"
 )
 
 // main function to register routes and start servers
@@ -28,7 +28,7 @@ func main() {
 
 	// Start the gRPC server
 	grpcPort := "50051"
-	go grpc.StartGRPCServerWithRetries(database, grpcPort, 60)
+	go server.StartGRPCServerWithRetries(database, grpcPort, 60)
 
 	// Setup Gin router
 	gin.SetMode(gin.ReleaseMode)
