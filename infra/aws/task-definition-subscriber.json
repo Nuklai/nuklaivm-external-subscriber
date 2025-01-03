@@ -44,6 +44,10 @@
         {
           "name": "DB_SSL_MODE",
           "value": "require"
+        },
+        {
+          "name": "DB_RESET",
+          "value": "${DB_RESET}"
         }
       ],
       "secrets": [
