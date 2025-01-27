@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nuklai/nuklaivm-external-subscriber/models"
 )
 
 // Struct to represent a validator stake
@@ -27,31 +28,11 @@ func GetAllValidatorStakes(db *sql.DB) gin.HandlerFunc {
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
 
-		rows, err := db.Query(`
-            SELECT node_id, actor, stake_start_block, stake_end_block, staked_amount, delegation_fee_rate, reward_address, tx_hash, timestamp
-            FROM validator_stake
-            ORDER BY timestamp DESC
-            LIMIT $1 OFFSET $2`, limit, offset)
+		stakes, err := models.FetchAllValidatorStakes(db, limit, offset)
 		if err != nil {
 			log.Printf("Error fetching validator stakes: %v\n", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve validator stakes"})
 			return
-		}
-		defer rows.Close()
-
-		var stakes []ValidatorStake
-		for rows.Next() {
-			var stake ValidatorStake
-			if err := rows.Scan(
-				&stake.NodeID, &stake.Actor, &stake.StakeStartBlock,
-				&stake.StakeEndBlock, &stake.StakedAmount,
-				&stake.DelegationFeeRate, &stake.RewardAddress,
-				&stake.TxHash, &stake.Timestamp,
-			); err != nil {
-				log.Printf("Error scanning stake row: %v\n", err)
-				continue
-			}
-			stakes = append(stakes, stake)
 		}
 
 		c.JSON(http.StatusOK, gin.H{"items": stakes})
@@ -63,18 +44,8 @@ func GetValidatorStakeByNodeID(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		nodeID := c.Param("node_id")
 
-		row := db.QueryRow(`
-            SELECT node_id, actor, stake_start_block, stake_end_block, staked_amount, delegation_fee_rate, reward_address, tx_hash, timestamp
-            FROM validator_stake
-            WHERE node_id = $1`, nodeID)
-
-		var stake ValidatorStake
-		if err := row.Scan(
-			&stake.NodeID, &stake.Actor, &stake.StakeStartBlock,
-			&stake.StakeEndBlock, &stake.StakedAmount,
-			&stake.DelegationFeeRate, &stake.RewardAddress,
-			&stake.TxHash, &stake.Timestamp,
-		); err != nil {
+		stake, err := models.FetchValidatorStakeByNodeID(db, nodeID)
+		if err != nil {
 			log.Printf("Error fetching validator stake: %v\n", err)
 			c.JSON(http.StatusNotFound, gin.H{"error": "Validator stake not found"})
 			return
