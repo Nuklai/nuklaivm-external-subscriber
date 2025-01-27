@@ -11,6 +11,7 @@
 
 ```json
 {
+  "counter": 2,
   "items": [
     {
       "node_id": "NodeID-Nxy5Q8K9YkLasVKkdd4ftaHnVwdSPnKE5",
