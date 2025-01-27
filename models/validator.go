@@ -17,6 +17,17 @@ type ValidatorStake struct {
     Timestamp         string `json:"timestamp"`
 }
 
+// CountValidatorStakes gets total count of validator stakes
+func CountValidatorStakes(db *sql.DB) (int, error) {
+    var count int
+    err := db.QueryRow(`SELECT COUNT(*) FROM validator_stake`).Scan(&count)
+    if err != nil {
+        log.Printf("Error counting validator stakes: %v", err)
+        return 0, err
+    }
+    return count, nil
+}
+
 // FetchAllValidatorStakes retrieves validator stakes from the database with pagination
 func FetchAllValidatorStakes(db *sql.DB, limit, offset string) ([]ValidatorStake, error) {
     rows, err := db.Query(`
