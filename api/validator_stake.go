@@ -28,6 +28,13 @@ func GetAllValidatorStakes(db *sql.DB) gin.HandlerFunc {
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
 
+		// Get validators total count
+		totalCount, err := models.CountValidatorStakes(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to count validator stakes"})
+			return
+		}
+
 		stakes, err := models.FetchAllValidatorStakes(db, limit, offset)
 		if err != nil {
 			log.Printf("Error fetching validator stakes: %v\n", err)
@@ -35,7 +42,10 @@ func GetAllValidatorStakes(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"items": stakes})
+		c.JSON(http.StatusOK, gin.H{
+			"counter": totalCount,
+			"items":   stakes,
+		})
 	}
 }
 
