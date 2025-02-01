@@ -293,6 +293,7 @@ func FetchAllActionVolumes(db *sql.DB) ([]ActionVolumes, error) {
 	return volumes, nil
 }
 
+// FetchActionVolumesByName retrieves an actions volume by it's name
 func FetchActionVolumesByName(db *sql.DB, actionName string) (ActionVolumes, error) {
 	var volume ActionVolumes
 
