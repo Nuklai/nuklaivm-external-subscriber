@@ -255,6 +255,22 @@
 }
 ```
 
+## Get Transfer Volumes
+
+- **Endpoint**: `/transactions/volumes`
+- **Description**: Retrieves total transfer volume for 12 hours, 24 hours, 7 days, 30 days
+- **Example**: `curl http://localhost:8080/transactions/volumes`
+- **Output**:
+
+```json
+{
+  "12_hours": 22500000000,
+  "24_hours": 22500000000,
+  "7_days": 22500000000,
+  "30_days": 22500000000
+}
+```
+
 ## Get Aggregated Estimated Fees for different Transactions
 
 - **Endpoint**: `/transactions/estimated_fee`
