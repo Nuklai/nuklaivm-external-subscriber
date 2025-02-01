@@ -128,17 +128,33 @@ func GetTransactionsByUser(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// GetTransactionVolumes retrieves transactions volumes by 12hrs, 24hrs, 7days & 30 days
-func GetTransactionVolumes(db *sql.DB) gin.HandlerFunc {
+// GetTransactionVolumes retrieves all actions volumes by 12hrs, 24hrs, 7days & 30 days
+func GetAllActionVolumes(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		volumes, err := models.FetchTransactionVolumes(db)
+		volumes, err := models.FetchAllActionVolumes(db)
 		if err != nil {
-			log.Printf("Error fetching transfer volumes: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transfer volumes"})
+			log.Printf("Error fetching action volumes: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve action volumes"})
 			return
 		}
 
 		c.JSON(http.StatusOK, volumes)
+	}
+}
+
+// GetActionVolumesByName retrieves an actions volume by it's name
+func GetActionVolumesByName(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		actionName := c.Param("action_name")
+
+		volume, err := models.FetchActionVolumesByName(db, actionName)
+		if err != nil {
+			log.Printf("Error fetching action volumes: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve action volumes"})
+			return
+		}
+
+		c.JSON(http.StatusOK, volume)
 	}
 }
 

@@ -255,19 +255,71 @@
 }
 ```
 
-## Get Transfer Volumes
+## Get All Actions Volumes
 
 - **Endpoint**: `/transactions/volumes`
-- **Description**: Retrieves total transfer volume for 12 hours, 24 hours, 7 days, 30 days
+- **Description**: Retrieves volumes for all action types as either a data type of value or counts.
 - **Example**: `curl http://localhost:8080/transactions/volumes`
 - **Output**:
 
 ```json
+[
+  {
+    "action_type": 0,
+    "action_name": "Transfer",
+    "data_type": "value",
+    "12_hours": 10300000000,
+    "24_hours": 143300000000,
+    "7_days": 993968000000,
+    "30_days": 894572467400000
+  },
+  {
+    "action_type": 4,
+    "action_name": "CreateAsset",
+    "data_type": "count",
+    "12_hours": 96,
+    "24_hours": 463,
+    "7_days": 1972,
+    "30_days": 17210
+  }
+]
+```
+
+## Get Volumes by Action Name
+
+- **Endpoint**: `/transactions/volumes/:action_name`
+- **Description**: Retrieves volumes for a specific action for 12 hours, 24 hours, 7 days, 30 days as either a data type of value or counts.
+- **Example**: `curl http://localhost:8080/transactions/volumes/Transfer`
+- **Data Type**: Value
+- **Output**:
+
+```json
 {
-  "12_hours": 22500000000,
-  "24_hours": 22500000000,
-  "7_days": 22500000000,
-  "30_days": 22500000000
+  "action_type": 0,
+  "action_name": "Transfer",
+  "data_type": "value",
+  "12_hours": 10300000000,
+  "24_hours": 143300000000,
+  "7_days": 993968000000,
+  "30_days": 894572467400000
+}
+```
+
+### Get CreateAsset volumes
+
+- **Example**: `curl http://localhost:8080/transactions/volumes/CreateAsset`
+- **Data Type**: Count
+- **Output**:
+
+```json
+{
+  "action_type": 4,
+  "action_name": "CreateAsset",
+  "data_type": "count",
+  "12_hours": 96,
+  "24_hours": 463,
+  "7_days": 1972,
+  "30_days": 17210
 }
 ```
 
