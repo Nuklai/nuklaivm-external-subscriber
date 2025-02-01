@@ -36,6 +36,16 @@ type TransactionVolumes struct {
 	Days30  float64 `json:"30_days"`
 }
 
+type ActionVolumes struct {
+	ActionType int     `json:"action_type"`
+	ActionName string  `json:"action_name"`
+	DataType   string  `json:"data_type"`
+	Hours12    float64 `json:"12_hours"`
+	Hours24    float64 `json:"24_hours"`
+	Days7      float64 `json:"7_days"`
+	Days30     float64 `json:"30_days"`
+}
+
 // CountFilteredTransactions counts transactions based on optional filters
 func CountFilteredTransactions(db *sql.DB, txHash, blockHash, actionType, actionName, user string) (int, error) {
 	query, args := buildTransactionFilterQuery("COUNT(*)", txHash, blockHash, actionType, actionName, user)
@@ -211,44 +221,145 @@ func FetchTransactionsByUser(db *sql.DB, user, limit, offset string) ([]Transact
 
 	return scanTransactions(rows)
 }
-// FetchTransactionVolumes retrieves transactions volumes by 12hrs, 24hrs, 7days & 30 days
-func FetchTransactionVolumes(db *sql.DB) (TransactionVolumes, error) {
-	var volumes TransactionVolumes
 
-	query := `
-        WITH transfer_actions AS (
-            SELECT 
-                a.timestamp,
-                CAST(COALESCE((a.input->>'value'),'0') AS NUMERIC) as transfer_value
-            FROM actions a
-            WHERE a.action_type = 0  -- Transfer action type
-            AND a.timestamp >= NOW() - $1::interval
-        )
-        SELECT COALESCE(SUM(transfer_value), 0) as total_volume
-        FROM transfer_actions`
+// FetchAllActionVolumes retrieves all actions volumes by 12hrs, 24hrs, 7days & 30 days
+func FetchAllActionVolumes(db *sql.DB) ([]ActionVolumes, error) {
+	var volumes []ActionVolumes
 
-	// Get volumes for all our time periods
-	err := db.QueryRow(query, "12 hours").Scan(&volumes.Hours12)
-	if err != nil {
-		return volumes, err
+	// Always populate as new actions are implimented
+	allActions := []struct {
+		actionType int
+		actionName string
+		dataType   string
+	}{
+		{0, "Transfer", "value"},
+		{4, "CreateAsset", "count"},
 	}
 
-	err = db.QueryRow(query, "24 hours").Scan(&volumes.Hours24)
-	if err != nil {
-		return volumes, err
-	}
+	for _, action := range allActions {
+		volume := ActionVolumes{
+			ActionType: action.actionType,
+			ActionName: action.actionName,
+			DataType:   action.dataType,
+		}
 
-	err = db.QueryRow(query, "7 days").Scan(&volumes.Days7)
-	if err != nil {
-		return volumes, err
-	}
+		var query string
+		if action.dataType == "value" {
+			query = `
+                WITH action_volumes AS (
+                    SELECT 
+                        a.action_type,
+                        a.action_name,
+                        CAST(COALESCE((a.input->>'value'),'0') AS NUMERIC) as amount,
+                        a.timestamp
+                    FROM actions a
+                    WHERE LOWER(a.action_name) = LOWER($1)
+                    AND a.timestamp >= NOW() - $2::interval
+                )
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM action_volumes`
+		} else {
+			query = `
+                SELECT COUNT(*)
+                FROM actions a
+                WHERE LOWER(a.action_name) = LOWER($1)
+                AND a.timestamp >= NOW() - $2::interval`
+		}
 
-	err = db.QueryRow(query, "30 days").Scan(&volumes.Days30)
-	if err != nil {
-		return volumes, err
+		// Retreive volue for each periods we need
+		intervals := []string{"12 hours", "24 hours", "7 days", "30 days"}
+		for _, interval := range intervals {
+			var total float64
+			err := db.QueryRow(query, action.actionName, interval).Scan(&total)
+			if err != nil && err != sql.ErrNoRows {
+				return nil, err
+			}
+
+			switch interval {
+			case "12 hours":
+				volume.Hours12 = total
+			case "24 hours":
+				volume.Hours24 = total
+			case "7 days":
+				volume.Days7 = total
+			case "30 days":
+				volume.Days30 = total
+			}
+		}
+
+		volumes = append(volumes, volume)
 	}
 
 	return volumes, nil
+}
+
+func FetchActionVolumesByName(db *sql.DB, actionName string) (ActionVolumes, error) {
+	var volume ActionVolumes
+
+	dataType := "value"
+	if strings.ToLower(actionName) == "createasset" {
+		dataType = "count"
+	}
+
+	var query string
+	if dataType == "value" {
+		query = `
+            WITH action_volumes AS (
+                SELECT 
+                    a.action_type,
+                    a.action_name,
+                    CAST(COALESCE((a.input->>'value'),'0') AS NUMERIC) as amount,
+                    a.timestamp
+                FROM actions a
+                WHERE LOWER(a.action_name) = LOWER($1)
+                AND a.timestamp >= NOW() - $2::interval
+            )
+            SELECT 
+                action_type,
+                action_name,
+                COALESCE(SUM(amount), 0) as total
+            FROM action_volumes
+            GROUP BY action_type, action_name`
+	} else {
+		query = `
+            SELECT 
+                a.action_type,
+                a.action_name,
+                COUNT(*) as total
+            FROM actions a
+            WHERE LOWER(a.action_name) = LOWER($1)
+            AND a.timestamp >= NOW() - $2::interval
+            GROUP BY action_type, action_name`
+	}
+
+	volume.DataType = dataType
+
+	// Retreive volue for each periods we need
+	intervals := []string{"12 hours", "24 hours", "7 days", "30 days"}
+	for _, interval := range intervals {
+		var total float64
+		err := db.QueryRow(query, actionName, interval).Scan(
+			&volume.ActionType,
+			&volume.ActionName,
+			&total,
+		)
+		if err != nil && err != sql.ErrNoRows {
+			return volume, err
+		}
+
+		switch interval {
+		case "12 hours":
+			volume.Hours12 = total
+		case "24 hours":
+			volume.Hours24 = total
+		case "7 days":
+			volume.Days7 = total
+		case "30 days":
+			volume.Days30 = total
+		}
+	}
+
+	return volume, nil
 }
 
 // Helper function to scan transaction rows and unmarshal outputs
