@@ -128,6 +128,20 @@ func GetTransactionsByUser(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+// GetTransactionVolumes retrieves transactions volumes by 12hrs, 24hrs, 7days & 30 days
+func GetTransactionVolumes(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		volumes, err := models.FetchTransactionVolumes(db)
+		if err != nil {
+			log.Printf("Error fetching transfer volumes: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve transfer volumes"})
+			return
+		}
+
+		c.JSON(http.StatusOK, volumes)
+	}
+}
+
 // GetEstimatedFeeByActionType retrieves the estimated fee for a specific action type
 func GetEstimatedFeeByActionType(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

@@ -29,6 +29,13 @@ type Transaction struct {
 	Timestamp string                   `json:"Timestamp"`
 }
 
+type TransactionVolumes struct {
+	Hours12 float64 `json:"12_hours"`
+	Hours24 float64 `json:"24_hours"`
+	Days7   float64 `json:"7_days"`
+	Days30  float64 `json:"30_days"`
+}
+
 // CountFilteredTransactions counts transactions based on optional filters
 func CountFilteredTransactions(db *sql.DB, txHash, blockHash, actionType, actionName, user string) (int, error) {
 	query, args := buildTransactionFilterQuery("COUNT(*)", txHash, blockHash, actionType, actionName, user)
@@ -203,6 +210,45 @@ func FetchTransactionsByUser(db *sql.DB, user, limit, offset string) ([]Transact
 	defer rows.Close()
 
 	return scanTransactions(rows)
+}
+// FetchTransactionVolumes retrieves transactions volumes by 12hrs, 24hrs, 7days & 30 days
+func FetchTransactionVolumes(db *sql.DB) (TransactionVolumes, error) {
+	var volumes TransactionVolumes
+
+	query := `
+        WITH transfer_actions AS (
+            SELECT 
+                a.timestamp,
+                CAST(COALESCE((a.input->>'value'),'0') AS NUMERIC) as transfer_value
+            FROM actions a
+            WHERE a.action_type = 0  -- Transfer action type
+            AND a.timestamp >= NOW() - $1::interval
+        )
+        SELECT COALESCE(SUM(transfer_value), 0) as total_volume
+        FROM transfer_actions`
+
+	// Get volumes for all our time periods
+	err := db.QueryRow(query, "12 hours").Scan(&volumes.Hours12)
+	if err != nil {
+		return volumes, err
+	}
+
+	err = db.QueryRow(query, "24 hours").Scan(&volumes.Hours24)
+	if err != nil {
+		return volumes, err
+	}
+
+	err = db.QueryRow(query, "7 days").Scan(&volumes.Days7)
+	if err != nil {
+		return volumes, err
+	}
+
+	err = db.QueryRow(query, "30 days").Scan(&volumes.Days30)
+	if err != nil {
+		return volumes, err
+	}
+
+	return volumes, nil
 }
 
 // Helper function to scan transaction rows and unmarshal outputs
