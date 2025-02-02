@@ -46,6 +46,10 @@ type ActionVolumes struct {
 	Days30     float64 `json:"30_days"`
 }
 
+type TotalVolume struct {
+	Total uint64 `json:"total"`
+}
+
 // CountFilteredTransactions counts transactions based on optional filters
 func CountFilteredTransactions(db *sql.DB, txHash, blockHash, actionType, actionName, user string) (int, error) {
 	query, args := buildTransactionFilterQuery("COUNT(*)", txHash, blockHash, actionType, actionName, user)
@@ -291,6 +295,25 @@ func FetchAllActionVolumes(db *sql.DB) ([]ActionVolumes, error) {
 	}
 
 	return volumes, nil
+}
+
+// FetchTotalTransferVolume retrieves the all-time total transfer volume
+func FetchTotalTransferVolume(db *sql.DB) (TotalVolume, error) {
+	var volume TotalVolume
+
+	query := `
+        SELECT COALESCE(SUM(CAST(COALESCE((input->>'value'),'0') AS NUMERIC)), 0) as total
+        FROM actions 
+        WHERE action_type = 0 
+        AND LOWER(action_name) = 'transfer'
+    `
+
+	err := db.QueryRow(query).Scan(&volume.Total)
+	if err != nil && err != sql.ErrNoRows {
+		return volume, err
+	}
+
+	return volume, nil
 }
 
 // FetchActionVolumesByName retrieves an actions volume by it's name

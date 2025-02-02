@@ -305,6 +305,19 @@
 }
 ```
 
+## Get Total Transfer Volume
+
+- **Endpoint**: `/transactions/volumes/total`
+- **Description**: Retrieves the all-time total volume of all transfer action.
+- **Example**: `curl http://localhost:8080/transactions/volumes/total`
+- **Output**:
+
+```json
+{
+  "total": 894572467400000
+}
+```
+
 ### Get CreateAsset volumes
 
 - **Example**: `curl http://localhost:8080/transactions/volumes/CreateAsset`
