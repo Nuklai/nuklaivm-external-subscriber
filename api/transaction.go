@@ -142,6 +142,20 @@ func GetAllActionVolumes(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+// GetTotalTransferVolume retrieves the all-time total transfer value
+func GetTotalTransferVolume(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		volume, err := models.FetchTotalTransferVolume(db)
+		if err != nil {
+			log.Printf("Error fetching total transfer value: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve total transfer value"})
+			return
+		}
+
+		c.JSON(http.StatusOK, volume)
+	}
+}
+
 // GetActionVolumesByName retrieves an actions volume by it's name
 func GetActionVolumesByName(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
