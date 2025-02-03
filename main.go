@@ -82,6 +82,11 @@ func main() {
 	r.GET("/validator_stake", api.GetAllValidatorStakes(database))
 	r.GET("/validator_stake/:node_id", api.GetValidatorStakeByNodeID(database))
 
+	r.GET("/accounts", api.GetAllAccounts(database))
+	r.GET("/accounts/:address", api.GetAccountDetails(database))
+	r.GET("/accounts/stats", api.GetAccountStats(database))
+	
+
 	// Start HTTP server
 	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
