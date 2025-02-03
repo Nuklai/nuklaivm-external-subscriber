@@ -54,7 +54,6 @@ func main() {
 	r.GET("/genesis", api.GetGenesisData(database))
 
 	r.GET("/blocks", api.GetAllBlocks(database))
-	r.GET("/blocks/:identifier", api.GetBlock(database)) // Fetch by block height or hash
 
 	r.GET("/transactions", api.GetAllTransactions(database))
 	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))            // Fetch by transaction hash
@@ -85,7 +84,6 @@ func main() {
 	r.GET("/accounts", api.GetAllAccounts(database))
 	r.GET("/accounts/:address", api.GetAccountDetails(database))
 	r.GET("/accounts/stats", api.GetAccountStats(database))
-	
 
 	// Start HTTP server
 	if err := r.Run(":8080"); err != nil {
