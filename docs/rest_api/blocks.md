@@ -4,6 +4,8 @@
 
 - **Endpoint**: `/blocks`
 - **Parameters**:
+  - `block_height`: (optional) Get specific block by it's height.
+  - `block_hash`: (optional) Get specific block by it's hash.
   - `limit`: Number of blocks to return (default: 10).
   - `offset`: Offset for pagination (default: 0).
 - **Example**: `curl "http://localhost:8080/blocks?limit=2&offset=0"`
@@ -43,9 +45,8 @@
 
 ## Get Block by Height or Hash
 
-- **Endpoint**: `/blocks/:identifier`
 - **Description**: Retrieve a block by its height or hash.
-- **Example**: `curl http://localhost:8080/blocks/701` or `curl http://localhost:8080/blocks/apSs1J24ppuNu2RoXtRZRoiq8jSVdRWD4f3YZqaEiY2zYmmMU`
+- **Example**: `curl "http://localhost:8080/blocks?block_height=701"` or `curl "http://localhost:8080/blocks?block_hash=apSs1J24ppuNu2RoXtRZRoiq8jSVdRWD4f3YZqaEiY2zYmmMU"`
 - **Output**:
 
 ```json

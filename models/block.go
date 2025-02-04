@@ -5,8 +5,8 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
-	"strconv"
 )
 
 type Block struct {
@@ -35,22 +35,26 @@ func FetchAllBlocks(db *sql.DB, limit, offset string) ([]Block, error) {
 }
 
 // FetchBlock retrieves a block by its height or hash.
-func FetchBlock(db *sql.DB, identifier string) (Block, error) {
+func FetchBlock(db *sql.DB, height, hash string) (Block, error) {
 	var block Block
-	var whereClause string
+	var query string
+	var param interface{}
 
 	// Determine if identifier is a block height (integer) or block hash (string)
-	if _, err := strconv.ParseInt(identifier, 10, 64); err == nil {
-		whereClause = "block_height = $1::bigint"
+	if height != "" {
+		query = `SELECT * FROM blocks WHERE block_height = $1::bigint`
+		param = height
+	} else if hash != "" {
+		query = `SELECT * FROM blocks WHERE block_hash = $1`
+		param = hash
 	} else {
-		whereClause = "block_hash = $1"
+		return block, fmt.Errorf("either block height or hash must be provided")
 	}
 
-	// Base query with dynamic WHERE clause
-	query := `SELECT * FROM blocks WHERE ` + whereClause
-
-	// Execute query with identifier as parameter
-	err := db.QueryRow(query, identifier).Scan(&block.BlockHeight, &block.BlockHash, &block.ParentBlockHash, &block.StateRoot, &block.BlockSize, &block.TxCount, &block.TotalFee, &block.AvgTxSize, &block.UniqueParticipants, &block.Timestamp)
+	err := db.QueryRow(query, param).Scan(
+		&block.BlockHeight, &block.BlockHash, &block.ParentBlockHash,
+		&block.StateRoot, &block.BlockSize, &block.TxCount, &block.TotalFee,
+		&block.AvgTxSize, &block.UniqueParticipants, &block.Timestamp)
 
 	return block, err
 }

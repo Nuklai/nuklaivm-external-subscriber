@@ -54,12 +54,14 @@ func main() {
 	r.GET("/genesis", api.GetGenesisData(database))
 
 	r.GET("/blocks", api.GetAllBlocks(database))
-	r.GET("/blocks/:identifier", api.GetBlock(database)) // Fetch by block height or hash
 
 	r.GET("/transactions", api.GetAllTransactions(database))
-	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))                                      // Fetch by transaction hash
-	r.GET("/transactions/block/:identifier", api.GetTransactionsByBlock(database))                           // Fetch transactions by block height or hash
-	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))                                   // Fetch transactions by user with pagination
+	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))            // Fetch by transaction hash
+	r.GET("/transactions/block/:identifier", api.GetTransactionsByBlock(database)) // Fetch transactions by block height or hash
+	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))
+	r.GET("/transactions/volumes", api.GetAllActionVolumes(database))
+	r.GET("/transactions/volumes/:action_name", api.GetActionVolumesByName(database))
+	r.GET("/transactions/volumes/total", api.GetTotalTransferVolume(database))                               // Fetch transactions by user with pagination
 	r.GET("/transactions/estimated_fee/action_type/:action_type", api.GetEstimatedFeeByActionType(database)) // Fetch estimated fee by action type
 	r.GET("/transactions/estimated_fee/action_name/:action_name", api.GetEstimatedFeeByActionName(database)) // Fetch estimated fee by action name
 	r.GET("/transactions/estimated_fee", api.GetAggregateEstimatedFees(database))                            // Fetch aggregate estimated fees
@@ -78,6 +80,10 @@ func main() {
 
 	r.GET("/validator_stake", api.GetAllValidatorStakes(database))
 	r.GET("/validator_stake/:node_id", api.GetValidatorStakeByNodeID(database))
+
+	r.GET("/accounts", api.GetAllAccounts(database))
+	r.GET("/accounts/:address", api.GetAccountDetails(database))
+	r.GET("/accounts/stats", api.GetAccountStats(database))
 
 	// Start HTTP server
 	if err := r.Run(":8080"); err != nil {
