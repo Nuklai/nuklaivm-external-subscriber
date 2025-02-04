@@ -23,11 +23,12 @@ type BlockchainStats struct {
 }
 
 type ServiceStatus struct {
-	IsReachable    bool      `json:"is_reachable"`
-	LastError      string    `json:"last_error,omitempty"`
-	LastChecked    time.Time `json:"last_checked"`
-	LastSuccessful time.Time `json:"last_successful"`
-	ResponseTime   string    `json:"response_time"`
+	IsReachable         bool      `json:"is_reachable"`
+	LastError           string    `json:"last_error,omitempty"`
+	LastChecked         time.Time `json:"last_checked"`
+	LastSuccessful      time.Time `json:"last_successful"`
+	ResponseTime        string    `json:"response_time"`
+	ResponseTimeSeconds float64   `json:"response_time_seconds"`
 }
 
 type HealthEvent struct {
@@ -44,7 +45,7 @@ type HealthEvent struct {
 type HealthStatus struct {
 	State           HealthState               `json:"state"`
 	Details         map[string]bool           `json:"details"`
-	ServiceStatuses map[string]*ServiceStatus `json:"service_statuses"`
+	ServiceStatuse  map[string]*ServiceStatus `json:"service_statuse"`
 	BlockchainStats *BlockchainStats          `json:"blockchain_stats"`
 	CurrentIncident *HealthEvent              `json:"current_incident"`
 }

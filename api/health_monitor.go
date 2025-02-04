@@ -27,7 +27,7 @@ func InitHealthMonitor(db *sql.DB, grpcPort string) *HealthMonitor {
 		currentStatus: models.HealthStatus{
 			State:           models.HealthStateGreen,
 			Details:         make(map[string]bool),
-			ServiceStatuses: make(map[string]*models.ServiceStatus),
+			ServiceStatuse:  make(map[string]*models.ServiceStatus),
 			BlockchainStats: &models.BlockchainStats{},
 			CurrentIncident: nil,
 		},
@@ -114,7 +114,10 @@ func (h *HealthMonitor) FetchBlockchainHealth() (*models.ServiceStatus, *models.
 	stats.LastBlockTime = lastBlock.Timestamp
 	stats.ConsensusActive = blockAge <= 12*time.Second
 
-	status.ResponseTime = time.Since(start).String()
+	elapsed := time.Since(start)
+	status.ResponseTime = elapsed.String()
+	status.ResponseTimeSeconds = elapsed.Seconds()
+
 	return status, stats
 }
 
@@ -202,7 +205,7 @@ func (h *HealthMonitor) GetHealthStatus() models.HealthStatus {
 		"blockchain": blockchainStatus.IsReachable,
 	}
 
-	h.currentStatus.ServiceStatuses = map[string]*models.ServiceStatus{
+	h.currentStatus.ServiceStatuse = map[string]*models.ServiceStatus{
 		"blockchain": blockchainStatus,
 	}
 
@@ -217,7 +220,10 @@ func (h *HealthMonitor) GetHealthStatus() models.HealthStatus {
 		description.WriteString(fmt.Sprintf("- Block Age: %v\n", time.Since(blockchainStats.LastBlockTime).Round(time.Second)))
 
 		h.UpdateHealthState(models.HealthStateRed, description.String(), []string{"blockchain"})
-	} else if h.currentStatus.State != models.HealthStateGreen {
+	} else if blockchainStatus.ResponseTimeSeconds > 2.0 {
+		description := fmt.Sprintf("High Latency - Response Time: %.2fs", blockchainStatus.ResponseTimeSeconds)
+		h.UpdateHealthState(models.HealthStateYellow, description, []string{"blockchain"})
+	} else {
 		h.UpdateHealthState(models.HealthStateGreen, "", nil)
 	}
 
