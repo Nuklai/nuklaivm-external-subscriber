@@ -5,6 +5,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ import (
 	"github.com/nuklai/nuklaivm-external-subscriber/api"
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
 	"github.com/nuklai/nuklaivm-external-subscriber/db"
+	"github.com/nuklai/nuklaivm-external-subscriber/models"
 	"github.com/nuklai/nuklaivm-external-subscriber/server"
 )
 
@@ -29,6 +31,9 @@ func main() {
 	// Start the gRPC server
 	grpcPort := "50051"
 	go server.StartGRPCServerWithRetries(database, grpcPort, 60)
+
+	// Init the health monitor
+	healthMonitor := api.InitHealthMonitor(database, grpcPort)
 
 	// Setup Gin router
 	gin.SetMode(gin.ReleaseMode)
@@ -48,7 +53,8 @@ func main() {
 	}))
 
 	// Health endpoint
-	r.GET("/health", api.HealthCheck(":"+grpcPort, database))
+	r.GET("/health", api.GetHealth(healthMonitor))           // Get the current health status
+	r.GET("/health/history", api.GetHealthHistory(database)) // Get health insidents
 
 	// Other endpoints
 	r.GET("/genesis", api.GetGenesisData(database))
@@ -78,6 +84,26 @@ func main() {
 
 	r.GET("/validator_stake", api.GetAllValidatorStakes(database))
 	r.GET("/validator_stake/:node_id", api.GetValidatorStakeByNodeID(database))
+
+	// Start the health monitor (6s)
+	go func() {
+		ticker := time.NewTicker(6 * time.Second)
+		defer ticker.Stop()
+
+		var lastState models.HealthState
+
+		status := healthMonitor.GetHealthStatus()
+		lastState = status.State
+
+		// Check every 6 seconds
+		for range ticker.C {
+			status := healthMonitor.GetHealthStatus()
+
+			if status.State != lastState {
+				lastState = status.State
+			}
+		}
+	}()
 
 	// Start HTTP server
 	if err := r.Run(":8080"); err != nil {
