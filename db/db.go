@@ -123,6 +123,18 @@ func CreateSchema(db *sql.DB) error {
     UNIQUE (node_id, stake_start_block)
 	);
 
+	CREATE TABLE IF NOT EXISTS health_events (
+    id SERIAL PRIMARY KEY,
+    state VARCHAR(10) NOT NULL,
+    description TEXT NOT NULL,
+    service_names TEXT[],
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    duration INT,
+    timestamp TIMESTAMP NOT NULL
+	);
+
+
 	CREATE TABLE IF NOT EXISTS genesis_data (
 		id SERIAL PRIMARY KEY,
 		data JSON
@@ -142,17 +154,38 @@ func CreateSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_action_name_lower ON actions (LOWER(action_name));
 
 	CREATE INDEX IF NOT EXISTS idx_assets_creator ON assets(asset_creator);
-  CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
+  	CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
 	CREATE INDEX IF NOT EXISTS idx_asset_address ON assets(asset_address);
 
 	CREATE INDEX IF NOT EXISTS idx_validator_stake_node_id ON validator_stake(node_id);
 	CREATE INDEX IF NOT EXISTS idx_validator_stake_actor ON validator_stake(actor);
 	CREATE INDEX IF NOT EXISTS idx_validator_stake_timestamp ON validator_stake(timestamp);
+	CREATE INDEX IF NOT EXISTS idx_health_events_state ON health_events(state);
+	CREATE INDEX IF NOT EXISTS idx_health_events_timestamp ON health_events(timestamp);
+
 	`
 
 	_, err := db.Exec(schema)
 	if err != nil {
 		return fmt.Errorf("error executing schema creation: %w", err)
+	}
+
+	_, err = db.Exec(`
+    DO $$ 
+    BEGIN 
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_name = 'health_events' 
+            AND column_name = 'service_names'
+        ) THEN
+            ALTER TABLE health_events 
+            ADD COLUMN service_names TEXT[];
+        END IF;
+    END $$;
+    `)
+	if err != nil {
+		return fmt.Errorf("error service_names column: %w", err)
 	}
 
 	log.Println("Database schema created or already exists")

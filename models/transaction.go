@@ -19,6 +19,7 @@ type Transaction struct {
 	ID        int                      `json:"ID"`
 	TxHash    string                   `json:"TxHash"`
 	BlockHash string                   `json:"BlockHash"`
+	BlockHeight int64                  `json:"BlockHeight"`
 	Sponsor   string                   `json:"Sponsor"`
 	Actors    []string                 `json:"Actors"`
 	Receivers []string                 `json:"Receivers"`
@@ -61,7 +62,8 @@ func CountFilteredTransactions(db *sql.DB, txHash, blockHash, actionType, action
 // FetchFilteredTransactions retrieves transactions based on optional filters
 func FetchFilteredTransactions(db *sql.DB, txHash, blockHash, actionType, actionName, user, limit, offset string) ([]Transaction, error) {
 	query, args := buildTransactionFilterQuery("*", txHash, blockHash, actionType, actionName, user)
-	query = fmt.Sprintf("%s ORDER BY timestamp DESC LIMIT $%d OFFSET $%d", query, len(args)+1, len(args)+2)
+	query = fmt.Sprintf("%s ORDER BY transactions.timestamp DESC LIMIT $%d OFFSET $%d",
+		query, len(args)+1, len(args)+2)
 
 	args = append(args, limit, offset)
 	rows, err := db.Query(query, args...)
@@ -76,20 +78,26 @@ func FetchFilteredTransactions(db *sql.DB, txHash, blockHash, actionType, action
 
 // Helper function to construct filter queries for transactions
 func buildTransactionFilterQuery(selectFields, txHash, blockHash, actionType, actionName, user string) (string, []interface{}) {
-	query := fmt.Sprintf("SELECT %s FROM transactions WHERE 1=1", selectFields)
+	if selectFields == "COUNT(*)" {
+		query := fmt.Sprintf("SELECT COUNT(*) FROM transactions LEFT JOIN blocks ON transactions.block_hash = blocks.block_hash WHERE 1=1")
+		args := []interface{}{}
+		return query, args
+	}
+
+	query := fmt.Sprintf("SELECT id, tx_hash, transactions.block_hash, blocks.block_height, sponsor, actors, receivers, max_fee, success, fee, actions, transactions.timestamp FROM transactions LEFT JOIN blocks ON transactions.block_hash = blocks.block_hash WHERE 1=1")
 	args := []interface{}{}
 	argCounter := 1
 
 	// Filter by transaction hash
 	if txHash != "" {
-		query += fmt.Sprintf(" AND tx_hash ILIKE $%d", argCounter)
+		query += fmt.Sprintf(" AND transactions.tx_hash ILIKE $%d", argCounter)
 		args = append(args, "%"+txHash+"%")
 		argCounter++
 	}
 
 	// Filter by block hash
 	if blockHash != "" {
-		query += fmt.Sprintf(" AND block_hash ILIKE $%d", argCounter)
+		query += fmt.Sprintf(" AND transactions.block_hash ILIKE $%d", argCounter)
 		args = append(args, "%"+blockHash+"%")
 		argCounter++
 	}
@@ -149,9 +157,11 @@ func FetchTransactionByHash(db *sql.DB, txHash string) (Transaction, error) {
 	var actionsJSON []byte
 
 	err := db.QueryRow(`
-        SELECT id, tx_hash, block_hash, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
-        FROM transactions WHERE tx_hash = $1`, txHash).Scan(
-		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor,
+        SELECT id, tx_hash, transactions.block_hash, blocks.block_height, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
+		FROM transactions 
+        LEFT JOIN blocks ON transactions.block_hash = blocks.block_hash 
+        WHERE tx_hash = $1`, txHash).Scan(
+		&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.BlockHeight, &tx.Sponsor,
 		pq.Array(&tx.Actors), pq.Array(&tx.Receivers),
 		&tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp)
 	if err != nil {
@@ -173,15 +183,16 @@ func FetchTransactionsByBlock(db *sql.DB, blockIdentifier string) ([]Transaction
 	if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
 		// blockIdentifier is a block height
 		query = `
-			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, transactions.sponsor, transactions.actors, transactions.receivers, transactions.max_fee, transactions.success, transactions.fee, transactions.actions, transactions.timestamp
+			SELECT transactions.id, transactions.tx_hash, transactions.block_hash, blocks.block_height, transactions.sponsor, transactions.actors, transactions.receivers, transactions.max_fee, transactions.success, transactions.fee, transactions.actions, transactions.timestamp
 			FROM transactions
 			INNER JOIN blocks ON transactions.block_hash = blocks.block_hash
 			WHERE blocks.block_height = $1`
 	} else {
 		// blockIdentifier is a block hash
 		query = `
-			SELECT id, tx_hash, block_hash, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
+			SELECT id, tx_hash, transactions.block_hash, blocks.block_height, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
 			FROM transactions
+			LEFT JOIN blocks ON transactions.block_hash = blocks.block_hash
 			WHERE block_hash = $1`
 	}
 
@@ -201,8 +212,9 @@ func FetchTransactionsByUser(db *sql.DB, user, limit, offset string) ([]Transact
 	normalizedUser := "%" + strings.TrimPrefix(user, "0x") + "%"
 
 	rows, err := db.Query(`
-		SELECT id, tx_hash, block_hash, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
+		SELECT id, tx_hash, transactions.block_hash, blocks.block_height, sponsor, actors, receivers, max_fee, success, fee, actions, timestamp
 		FROM transactions
+		LEFT JOIN blocks ON transactions.block_hash = blocks.block_hash
 		WHERE sponsor ILIKE $1
 		   OR EXISTS (
 			   SELECT 1
@@ -394,7 +406,7 @@ func scanTransactions(rows *sql.Rows) ([]Transaction, error) {
 		var tx Transaction
 		var actionsJSON []byte
 		if err := rows.Scan(
-			&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.Sponsor,
+			&tx.ID, &tx.TxHash, &tx.BlockHash, &tx.BlockHeight, &tx.Sponsor,
 			pq.Array(&tx.Actors), pq.Array(&tx.Receivers),
 			&tx.MaxFee, &tx.Success, &tx.Fee, &actionsJSON, &tx.Timestamp); err != nil {
 			return nil, err
