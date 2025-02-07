@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/nuklai/nuklaivm-external-subscriber/models"
 
@@ -57,18 +58,24 @@ func GetAllBlocks(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// func GetBlock(db *sql.DB) gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		blockIdentifier := c.Param("identifier")
+func GetBlock(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		blockIdentifier := c.Param("identifier")
 
-// 		block, err := models.FetchBlock(db, blockIdentifier)
-// 		// Check for query errors
-// 		if err != nil {
-// 			log.Printf("Error fetching block: %v", err)
-// 			c.JSON(http.StatusNotFound, gin.H{"error": "Block not found"})
-// 			return
-// 		}
+		var height, hash string
+		if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
+			height = blockIdentifier
+		} else {
+			hash = blockIdentifier
+		}
 
-// 		c.JSON(http.StatusOK, block)
-// 	}
-// }
+		block, err := models.FetchBlock(db, height, hash)
+		if err != nil {
+			log.Printf("Error fetching block: %v", err)
+			c.JSON(http.StatusNotFound, gin.H{"error": "Block not found"})
+			return
+		}
+
+		c.JSON(http.StatusOK, block)
+	}
+}
