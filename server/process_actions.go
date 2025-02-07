@@ -67,3 +67,14 @@ func processRegisterValidatorStakeID(dbConn *sql.DB, actionOutput map[string]int
 	)
 	return err
 }
+
+// Update the action volume in psql
+func updateActionVolume(db *sql.DB, actionType uint8, actionName string) error {
+	_, err := db.Exec(`
+        INSERT INTO action_volumes (action_type, action_name, total_count)
+        VALUES ($1, $2, 1)
+        ON CONFLICT (action_type) DO UPDATE
+        SET total_count = action_volumes.total_count + 1`,
+		actionType, actionName)
+	return err
+}

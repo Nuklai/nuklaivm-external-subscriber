@@ -336,6 +336,28 @@
 }
 ```
 
+## Get Total Action Destribution Counts
+
+- **Endpoint**: `/transactions/volumes/actions/total`
+- **Description**: Retrieves the all-time total count for each action type
+- **Example**: `curl http://localhost:8080/transactions/volumes/actions/total`
+- **Output**:
+
+```json
+[
+  {
+    "action_type": 0,
+    "action_name": "Transfer",
+    "total_count": 8350724
+  },
+  {
+    "action_type": 4,
+    "action_name": "CreateAsset",
+    "total_count": 37423
+  }
+]
+```
+
 ## Get Aggregated Estimated Fees for different Transactions
 
 - **Endpoint**: `/transactions/estimated_fee`
