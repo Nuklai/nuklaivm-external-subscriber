@@ -60,7 +60,8 @@ func main() {
 	// Other endpoints
 	r.GET("/genesis", api.GetGenesisData(database))
 
-	r.GET("/blocks", api.GetAllBlocks(database))
+	r.GET("/blocks", api.GetAllBlocks(database))         // Get all blocks
+	r.GET("/blocks/:identifier", api.GetBlock(database)) // Get blocks by height or hash
 
 	r.GET("/transactions", api.GetAllTransactions(database))
 	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))            // Fetch by transaction hash
