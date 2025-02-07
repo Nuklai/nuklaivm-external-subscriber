@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
@@ -18,6 +19,12 @@ func InitDB(connStr string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to the database: %w", err)
 	}
+
+	// Set connection pool parameters
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("error pinging the database: %w", err)
@@ -134,6 +141,12 @@ func CreateSchema(db *sql.DB) error {
     timestamp TIMESTAMP NOT NULL
 	);
 
+	CREATE TABLE IF NOT EXISTS daily_health_summaries (
+    date DATE PRIMARY KEY,
+    state VARCHAR(10) NOT NULL,
+    incidents TEXT[],
+    last_updated TIMESTAMP NOT NULL
+	);
 
 	CREATE TABLE IF NOT EXISTS genesis_data (
 		id SERIAL PRIMARY KEY,
@@ -162,6 +175,9 @@ func CreateSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_validator_stake_timestamp ON validator_stake(timestamp);
 	CREATE INDEX IF NOT EXISTS idx_health_events_state ON health_events(state);
 	CREATE INDEX IF NOT EXISTS idx_health_events_timestamp ON health_events(timestamp);
+	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_date ON daily_health_summaries(date);
+	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_state ON daily_health_summaries(state);
+	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_last_updated ON daily_health_summaries(last_updated);
 
 	`
 

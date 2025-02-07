@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -199,6 +200,14 @@ func (h *HealthMonitor) GetHealthStatus() models.HealthStatus {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := h.db.QueryRowContext(ctx, `SELECT 1 FROM daily_health_summaries WHERE date = $1`,
+		time.Now().UTC().Truncate(24*time.Hour)).Err(); err == sql.ErrNoRows {
+		models.UpdateDailyHealthSummary(h.db, h.currentStatus)
+	}
+
 	blockchainStatus, blockchainStats := h.FetchBlockchainHealth()
 
 	h.currentStatus.Details = map[string]bool{
@@ -225,6 +234,10 @@ func (h *HealthMonitor) GetHealthStatus() models.HealthStatus {
 		h.UpdateHealthState(models.HealthStateYellow, description, []string{"blockchain"})
 	} else {
 		h.UpdateHealthState(models.HealthStateGreen, "", nil)
+	}
+
+	if err := models.UpdateDailyHealthSummary(h.db, h.currentStatus); err != nil {
+		log.Printf("Error updating daily health summary: %v", err)
 	}
 
 	return h.currentStatus
