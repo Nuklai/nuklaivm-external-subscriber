@@ -63,3 +63,32 @@
   }
 ]
 ```
+
+## Get 90-Day Health History
+
+- **Endpoint**: `/health/history/90days`
+- **Description**: Retrieves data for health daily for the last 90 days. Each day records the worst health state.
+- **Example**: `curl http://localhost:8080/health/history/90days`
+- **Output**:
+
+```json
+[
+  {
+    "date": "2025-02-06T00:00:00Z",
+    "state": "red",
+    "incidents": [
+      "CRITICAL: NuklaiVM Unresponsive\n- Error: Connection to NuklaiVM lost - no new blocks in 53h3m12s\n- Last Block Height: 138\n- Last Block Time: 2025-02-04T09:48:45Z\n- Block Age: 53h3m12s\n"
+    ]
+  },
+  {
+    "date": "2025-02-05T00:00:00Z",
+    "state": "yellow",
+    "incidents": ["High Latency - Response Time: 2.50s"]
+  },
+  {
+    "date": "2025-02-04T00:00:00Z",
+    "state": "green",
+    "incidents": []
+  }
+]
+```

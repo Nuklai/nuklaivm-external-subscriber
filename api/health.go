@@ -77,3 +77,17 @@ func GetHealthHistory(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, events)
 	}
 }
+
+// Get90DayHealth retrives a 90day health summary
+func Get90DayHealth(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		summaries, err := models.Fetch90DayHealth(db)
+		if err != nil {
+			log.Printf("Error fetching 90-day health history: %v", err)
+			c.JSON(http.StatusInternalServerError,
+				gin.H{"error": "Unable to retrieve health history"})
+			return
+		}
+		c.JSON(http.StatusOK, summaries)
+	}
+}

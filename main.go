@@ -53,8 +53,9 @@ func main() {
 	}))
 
 	// Health endpoint
-	r.GET("/health", api.GetHealth(healthMonitor))           // Get the current health status
-	r.GET("/health/history", api.GetHealthHistory(database)) // Get health insidents
+	r.GET("/health", api.GetHealth(healthMonitor))                // Get the current health status
+	r.GET("/health/history", api.GetHealthHistory(database))      // Get health insidents
+	r.GET("/health/history/90days", api.Get90DayHealth(database)) // Get 90-day health history
 
 	// Other endpoints
 	r.GET("/genesis", api.GetGenesisData(database))
@@ -93,15 +94,22 @@ func main() {
 		defer ticker.Stop()
 
 		var lastState models.HealthState
+		var lastDate time.Time
 
 		status := healthMonitor.GetHealthStatus()
 		lastState = status.State
+		lastDate = time.Now().UTC().Truncate(24 * time.Hour)
 
-		// Check every 6 seconds
 		for range ticker.C {
 			status := healthMonitor.GetHealthStatus()
+			currentDate := time.Now().UTC().Truncate(24 * time.Hour)
 
 			if status.State != lastState {
+				lastState = status.State
+			}
+
+			if !currentDate.Equal(lastDate) {
+				lastDate = currentDate
 				lastState = status.State
 			}
 		}
