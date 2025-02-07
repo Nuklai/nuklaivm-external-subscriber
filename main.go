@@ -68,7 +68,8 @@ func main() {
 	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))
 	r.GET("/transactions/volumes", api.GetAllActionVolumes(database))
 	r.GET("/transactions/volumes/:action_name", api.GetActionVolumesByName(database))
-	r.GET("/transactions/volumes/total", api.GetTotalTransferVolume(database))                               // Fetch transactions by user with pagination
+	r.GET("/transactions/volumes/actions/total", api.GetTotalActionCounts(database))                         // Fetch alltime actions volume
+	r.GET("/transactions/volumes/total", api.GetTotalTransferVolume(database))                               // Fetch alltime transfer volume
 	r.GET("/transactions/estimated_fee/action_type/:action_type", api.GetEstimatedFeeByActionType(database)) // Fetch estimated fee by action type
 	r.GET("/transactions/estimated_fee/action_name/:action_name", api.GetEstimatedFeeByActionName(database)) // Fetch estimated fee by action name
 	r.GET("/transactions/estimated_fee", api.GetAggregateEstimatedFees(database))                            // Fetch aggregate estimated fees

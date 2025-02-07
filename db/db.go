@@ -148,6 +148,12 @@ func CreateSchema(db *sql.DB) error {
     last_updated TIMESTAMP NOT NULL
 	);
 
+	CREATE TABLE IF NOT EXISTS action_volumes (
+    action_type SMALLINT PRIMARY KEY,
+    action_name TEXT NOT NULL,
+    total_count BIGINT NOT NULL DEFAULT 0
+	);
+
 	CREATE TABLE IF NOT EXISTS genesis_data (
 		id SERIAL PRIMARY KEY,
 		data JSON
@@ -178,6 +184,7 @@ func CreateSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_date ON daily_health_summaries(date);
 	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_state ON daily_health_summaries(state);
 	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_last_updated ON daily_health_summaries(last_updated);
+	CREATE INDEX IF NOT EXISTS idx_action_volumes_name ON action_volumes(action_name);
 
 	`
 

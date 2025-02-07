@@ -16,18 +16,18 @@ import (
 )
 
 type Transaction struct {
-	ID        int                      `json:"ID"`
-	TxHash    string                   `json:"TxHash"`
-	BlockHash string                   `json:"BlockHash"`
-	BlockHeight int64                  `json:"BlockHeight"`
-	Sponsor   string                   `json:"Sponsor"`
-	Actors    []string                 `json:"Actors"`
-	Receivers []string                 `json:"Receivers"`
-	MaxFee    float64                  `json:"MaxFee"`
-	Success   bool                     `json:"Success"`
-	Fee       uint64                   `json:"Fee"`
-	Actions   []map[string]interface{} `json:"Actions"`
-	Timestamp string                   `json:"Timestamp"`
+	ID          int                      `json:"ID"`
+	TxHash      string                   `json:"TxHash"`
+	BlockHash   string                   `json:"BlockHash"`
+	BlockHeight int64                    `json:"BlockHeight"`
+	Sponsor     string                   `json:"Sponsor"`
+	Actors      []string                 `json:"Actors"`
+	Receivers   []string                 `json:"Receivers"`
+	MaxFee      float64                  `json:"MaxFee"`
+	Success     bool                     `json:"Success"`
+	Fee         uint64                   `json:"Fee"`
+	Actions     []map[string]interface{} `json:"Actions"`
+	Timestamp   string                   `json:"Timestamp"`
 }
 
 type TransactionVolumes struct {
@@ -49,6 +49,12 @@ type ActionVolumes struct {
 
 type TotalVolume struct {
 	Total uint64 `json:"total"`
+}
+
+type ActionVolume struct {
+	ActionType uint8  `json:"action_type"`
+	ActionName string `json:"action_name"`
+	TotalCount int64  `json:"total_count"`
 }
 
 // CountFilteredTransactions counts transactions based on optional filters
@@ -396,6 +402,32 @@ func FetchActionVolumesByName(db *sql.DB, actionName string) (ActionVolumes, err
 	}
 
 	return volume, nil
+}
+
+// FetchActionVolumes retrieves all action volumes
+func FetchActionVolumes(db *sql.DB) ([]ActionVolume, error) {
+	rows, err := db.Query(`
+        SELECT action_type, action_name, total_count
+        FROM action_volumes
+        ORDER BY total_count DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var totals []ActionVolume
+	for rows.Next() {
+		var total ActionVolume
+		if err := rows.Scan(
+			&total.ActionType,
+			&total.ActionName,
+			&total.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		totals = append(totals, total)
+	}
+	return totals, rows.Err()
 }
 
 // Helper function to scan transaction rows and unmarshal outputs
