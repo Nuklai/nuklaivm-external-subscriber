@@ -53,13 +53,15 @@ func main() {
 	}))
 
 	// Health endpoint
-	r.GET("/health", api.GetHealth(healthMonitor))           // Get the current health status
-	r.GET("/health/history", api.GetHealthHistory(database)) // Get health insidents
+	r.GET("/health", api.GetHealth(healthMonitor))                // Get the current health status
+	r.GET("/health/history", api.GetHealthHistory(database))      // Get health insidents
+	r.GET("/health/history/90days", api.Get90DayHealth(database)) // Get 90-day health history
 
 	// Other endpoints
 	r.GET("/genesis", api.GetGenesisData(database))
 
-	r.GET("/blocks", api.GetAllBlocks(database))
+	r.GET("/blocks", api.GetAllBlocks(database))         // Get all blocks
+	r.GET("/blocks/:identifier", api.GetBlock(database)) // Get blocks by height or hash
 
 	r.GET("/transactions", api.GetAllTransactions(database))
 	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))            // Fetch by transaction hash
@@ -67,7 +69,8 @@ func main() {
 	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))
 	r.GET("/transactions/volumes", api.GetAllActionVolumes(database))
 	r.GET("/transactions/volumes/:action_name", api.GetActionVolumesByName(database))
-	r.GET("/transactions/volumes/total", api.GetTotalTransferVolume(database))                               // Fetch transactions by user with pagination
+	r.GET("/transactions/volumes/actions/total", api.GetTotalActionCounts(database))                         // Fetch alltime actions volume
+	r.GET("/transactions/volumes/total", api.GetTotalTransferVolume(database))                               // Fetch alltime transfer volume
 	r.GET("/transactions/estimated_fee/action_type/:action_type", api.GetEstimatedFeeByActionType(database)) // Fetch estimated fee by action type
 	r.GET("/transactions/estimated_fee/action_name/:action_name", api.GetEstimatedFeeByActionName(database)) // Fetch estimated fee by action name
 	r.GET("/transactions/estimated_fee", api.GetAggregateEstimatedFees(database))                            // Fetch aggregate estimated fees
@@ -93,15 +96,22 @@ func main() {
 		defer ticker.Stop()
 
 		var lastState models.HealthState
+		var lastDate time.Time
 
 		status := healthMonitor.GetHealthStatus()
 		lastState = status.State
+		lastDate = time.Now().UTC().Truncate(24 * time.Hour)
 
-		// Check every 6 seconds
 		for range ticker.C {
 			status := healthMonitor.GetHealthStatus()
+			currentDate := time.Now().UTC().Truncate(24 * time.Hour)
 
 			if status.State != lastState {
+				lastState = status.State
+			}
+
+			if !currentDate.Equal(lastDate) {
+				lastDate = currentDate
 				lastState = status.State
 			}
 		}

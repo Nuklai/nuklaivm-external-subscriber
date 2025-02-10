@@ -172,6 +172,19 @@ func GetActionVolumesByName(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+func GetTotalActionCounts(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		totals, err := models.FetchActionVolumes(db)
+		if err != nil {
+			log.Printf("Error fetching action totals: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to retrieve action totals"})
+			return
+		}
+
+		c.JSON(http.StatusOK, totals)
+	}
+}
+
 // GetEstimatedFeeByActionType retrieves the estimated fee for a specific action type
 func GetEstimatedFeeByActionType(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
