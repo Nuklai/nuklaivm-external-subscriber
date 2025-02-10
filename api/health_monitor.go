@@ -196,12 +196,16 @@ func (h *HealthMonitor) UpdateHealthState(newState models.HealthState, descripti
 }
 
 // GetHealthStatus returns the complete health status of the VM
-func (h *HealthMonitor) GetHealthStatus() models.HealthStatus {
+func (h *HealthMonitor) GetHealthStatus() (models.HealthStatus, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	if err := h.db.PingContext(ctx); err != nil {
+		return models.HealthStatus{}, fmt.Errorf("database connection failed: %w", err)
+	}
 
 	if err := h.db.QueryRowContext(ctx, `SELECT 1 FROM daily_health_summaries WHERE date = $1`,
 		time.Now().UTC().Truncate(24*time.Hour)).Err(); err == sql.ErrNoRows {
@@ -237,8 +241,8 @@ func (h *HealthMonitor) GetHealthStatus() models.HealthStatus {
 	}
 
 	if err := models.UpdateDailyHealthSummary(h.db, h.currentStatus); err != nil {
-		log.Printf("Error updating daily health summary: %v", err)
+		return h.currentStatus, fmt.Errorf("Error updating daily health summary: %w", err)
 	}
 
-	return h.currentStatus
+	return h.currentStatus, nil
 }

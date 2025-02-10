@@ -17,14 +17,18 @@ import (
 // GetHealth retrieves the current health status of the system
 func GetHealth(monitor *HealthMonitor) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		status := monitor.GetHealthStatus()
+		status, err := monitor.GetHealthStatus()
 
-		httpStatus := http.StatusOK
-		if status.State == models.HealthStateRed {
-			httpStatus = http.StatusServiceUnavailable
+		response := gin.H{
+			"api_healthy": err == nil,
+			"status":      nil,
 		}
 
-		c.JSON(httpStatus, status)
+		if err == nil {
+			response["status"] = status
+		}
+
+		c.JSON(http.StatusOK, response)
 	}
 }
 

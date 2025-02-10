@@ -102,12 +102,18 @@ func main() {
 		var lastState models.HealthState
 		var lastDate time.Time
 
-		status := healthMonitor.GetHealthStatus()
-		lastState = status.State
-		lastDate = time.Now().UTC().Truncate(24 * time.Hour)
+		status, err := healthMonitor.GetHealthStatus()
+		if err == nil {
+			lastState = status.State
+			lastDate = time.Now().UTC().Truncate(24 * time.Hour)
+		}
 
 		for range ticker.C {
-			status := healthMonitor.GetHealthStatus()
+			status, err := healthMonitor.GetHealthStatus()
+			if err != nil {
+				continue
+			}
+
 			currentDate := time.Now().UTC().Truncate(24 * time.Hour)
 
 			if status.State != lastState {
