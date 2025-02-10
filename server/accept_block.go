@@ -187,6 +187,11 @@ func processBlockData(dbConn *sql.DB, executedBlock *chain.ExecutedBlock) error 
 				log.Printf("Error saving action to database: %v\n", err)
 			}
 
+			// Update the action total
+			if err := updateActionVolume(dbConn, actionType, actionName); err != nil {
+				log.Printf("Error updating action total: %v\n", err)
+			}
+
 			// Handle special actions
 			// Parse actionInputJSON into map[string]interface{}
 			var actionInput map[string]interface{}

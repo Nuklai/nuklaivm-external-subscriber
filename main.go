@@ -5,6 +5,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ import (
 	"github.com/nuklai/nuklaivm-external-subscriber/api"
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
 	"github.com/nuklai/nuklaivm-external-subscriber/db"
+	"github.com/nuklai/nuklaivm-external-subscriber/models"
 	"github.com/nuklai/nuklaivm-external-subscriber/server"
 )
 
@@ -29,6 +31,9 @@ func main() {
 	// Start the gRPC server
 	grpcPort := "50051"
 	go server.StartGRPCServerWithRetries(database, grpcPort, 60)
+
+	// Init the health monitor
+	healthMonitor := api.InitHealthMonitor(database, grpcPort)
 
 	// Setup Gin router
 	gin.SetMode(gin.ReleaseMode)
@@ -48,18 +53,24 @@ func main() {
 	}))
 
 	// Health endpoint
-	r.GET("/health", api.HealthCheck(":"+grpcPort, database))
+	r.GET("/health", api.GetHealth(healthMonitor))                // Get the current health status
+	r.GET("/health/history", api.GetHealthHistory(database))      // Get health insidents
+	r.GET("/health/history/90days", api.Get90DayHealth(database)) // Get 90-day health history
 
 	// Other endpoints
 	r.GET("/genesis", api.GetGenesisData(database))
 
-	r.GET("/blocks", api.GetAllBlocks(database))
-	r.GET("/blocks/:identifier", api.GetBlock(database)) // Fetch by block height or hash
+	r.GET("/blocks", api.GetAllBlocks(database))         // Get all blocks
+	r.GET("/blocks/:identifier", api.GetBlock(database)) // Get blocks by height or hash
 
 	r.GET("/transactions", api.GetAllTransactions(database))
-	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))                                      // Fetch by transaction hash
-	r.GET("/transactions/block/:identifier", api.GetTransactionsByBlock(database))                           // Fetch transactions by block height or hash
-	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))                                   // Fetch transactions by user with pagination
+	r.GET("/transactions/:tx_hash", api.GetTransactionByHash(database))            // Fetch by transaction hash
+	r.GET("/transactions/block/:identifier", api.GetTransactionsByBlock(database)) // Fetch transactions by block height or hash
+	r.GET("/transactions/user/:user", api.GetTransactionsByUser(database))
+	r.GET("/transactions/volumes", api.GetAllActionVolumes(database))
+	r.GET("/transactions/volumes/:action_name", api.GetActionVolumesByName(database))
+	r.GET("/transactions/volumes/actions/total", api.GetTotalActionCounts(database))                         // Fetch alltime actions volume
+	r.GET("/transactions/volumes/total", api.GetTotalTransferVolume(database))                               // Fetch alltime transfer volume
 	r.GET("/transactions/estimated_fee/action_type/:action_type", api.GetEstimatedFeeByActionType(database)) // Fetch estimated fee by action type
 	r.GET("/transactions/estimated_fee/action_name/:action_name", api.GetEstimatedFeeByActionName(database)) // Fetch estimated fee by action name
 	r.GET("/transactions/estimated_fee", api.GetAggregateEstimatedFees(database))                            // Fetch aggregate estimated fees
@@ -78,6 +89,37 @@ func main() {
 
 	r.GET("/validator_stake", api.GetAllValidatorStakes(database))
 	r.GET("/validator_stake/:node_id", api.GetValidatorStakeByNodeID(database))
+
+	r.GET("/accounts", api.GetAllAccounts(database))
+	r.GET("/accounts/:address", api.GetAccountDetails(database))
+	r.GET("/accounts/stats", api.GetAccountStats(database))
+
+	// Start the health monitor (6s)
+	go func() {
+		ticker := time.NewTicker(6 * time.Second)
+		defer ticker.Stop()
+
+		var lastState models.HealthState
+		var lastDate time.Time
+
+		status := healthMonitor.GetHealthStatus()
+		lastState = status.State
+		lastDate = time.Now().UTC().Truncate(24 * time.Hour)
+
+		for range ticker.C {
+			status := healthMonitor.GetHealthStatus()
+			currentDate := time.Now().UTC().Truncate(24 * time.Hour)
+
+			if status.State != lastState {
+				lastState = status.State
+			}
+
+			if !currentDate.Equal(lastDate) {
+				lastDate = currentDate
+				lastState = status.State
+			}
+		}
+	}()
 
 	// Start HTTP server
 	if err := r.Run(":8080"); err != nil {

@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/nuklai/nuklaivm-external-subscriber/models"
 
@@ -16,8 +17,22 @@ import (
 // GetAllBlocks retrieves all blocks with pagination and total count
 func GetAllBlocks(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		blockHash := c.Query("block_hash")
+		blockHeight := c.Query("block_height")
 		limit := c.DefaultQuery("limit", "10")
 		offset := c.DefaultQuery("offset", "0")
+
+		// Request a specific block
+		if blockHash != "" || blockHeight != "" {
+			block, err := models.FetchBlock(db, blockHeight, blockHash)
+			if err != nil {
+				log.Printf("Error fetching block: %v", err)
+				c.JSON(http.StatusNotFound, gin.H{"error": "Block not found"})
+				return
+			}
+			c.JSON(http.StatusOK, block)
+			return
+		}
 
 		// Get total count of blocks
 		var totalCount int
@@ -47,8 +62,14 @@ func GetBlock(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		blockIdentifier := c.Param("identifier")
 
-		block, err := models.FetchBlock(db, blockIdentifier)
-		// Check for query errors
+		var height, hash string
+		if _, err := strconv.ParseInt(blockIdentifier, 10, 64); err == nil {
+			height = blockIdentifier
+		} else {
+			hash = blockIdentifier
+		}
+
+		block, err := models.FetchBlock(db, height, hash)
 		if err != nil {
 			log.Printf("Error fetching block: %v", err)
 			c.JSON(http.StatusNotFound, gin.H{"error": "Block not found"})

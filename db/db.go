@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
@@ -18,6 +19,12 @@ func InitDB(connStr string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to the database: %w", err)
 	}
+
+	// Set connection pool parameters
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("error pinging the database: %w", err)
@@ -123,6 +130,30 @@ func CreateSchema(db *sql.DB) error {
     UNIQUE (node_id, stake_start_block)
 	);
 
+	CREATE TABLE IF NOT EXISTS health_events (
+    id SERIAL PRIMARY KEY,
+    state VARCHAR(10) NOT NULL,
+    description TEXT NOT NULL,
+    service_names TEXT[],
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    duration INT,
+    timestamp TIMESTAMP NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS daily_health_summaries (
+    date DATE PRIMARY KEY,
+    state VARCHAR(10) NOT NULL,
+    incidents TEXT[],
+    last_updated TIMESTAMP NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS action_volumes (
+    action_type SMALLINT PRIMARY KEY,
+    action_name TEXT NOT NULL,
+    total_count BIGINT NOT NULL DEFAULT 0
+	);
+
 	CREATE TABLE IF NOT EXISTS genesis_data (
 		id SERIAL PRIMARY KEY,
 		data JSON
@@ -142,17 +173,42 @@ func CreateSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_action_name_lower ON actions (LOWER(action_name));
 
 	CREATE INDEX IF NOT EXISTS idx_assets_creator ON assets(asset_creator);
-  CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
+  	CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type_id);
 	CREATE INDEX IF NOT EXISTS idx_asset_address ON assets(asset_address);
 
 	CREATE INDEX IF NOT EXISTS idx_validator_stake_node_id ON validator_stake(node_id);
 	CREATE INDEX IF NOT EXISTS idx_validator_stake_actor ON validator_stake(actor);
 	CREATE INDEX IF NOT EXISTS idx_validator_stake_timestamp ON validator_stake(timestamp);
+	CREATE INDEX IF NOT EXISTS idx_health_events_state ON health_events(state);
+	CREATE INDEX IF NOT EXISTS idx_health_events_timestamp ON health_events(timestamp);
+	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_date ON daily_health_summaries(date);
+	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_state ON daily_health_summaries(state);
+	CREATE INDEX IF NOT EXISTS idx_daily_health_summaries_last_updated ON daily_health_summaries(last_updated);
+	CREATE INDEX IF NOT EXISTS idx_action_volumes_name ON action_volumes(action_name);
+
 	`
 
 	_, err := db.Exec(schema)
 	if err != nil {
 		return fmt.Errorf("error executing schema creation: %w", err)
+	}
+
+	_, err = db.Exec(`
+    DO $$ 
+    BEGIN 
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_name = 'health_events' 
+            AND column_name = 'service_names'
+        ) THEN
+            ALTER TABLE health_events 
+            ADD COLUMN service_names TEXT[];
+        END IF;
+    END $$;
+    `)
+	if err != nil {
+		return fmt.Errorf("error service_names column: %w", err)
 	}
 
 	log.Println("Database schema created or already exists")
