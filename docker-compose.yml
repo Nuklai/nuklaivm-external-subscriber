@@ -86,7 +86,7 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: nuklaivm
       DB_SSLMODE: require
-      GRPC_WHITELISTED_BLOCKCHAIN_NODES: '127.0.0.1,localhost/172.17.0.0/16,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+      GRPC_WHITELISTED_BLOCKCHAIN_NODES: '172.17.0.0/16,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
     ports:
       - '8080:8080'
       - '50051:50051'
