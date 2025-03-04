@@ -1,41 +1,50 @@
 # Build stage
-FROM golang:1.22.5 AS builder
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
 
 # Install required dependencies
-RUN apt-get update && apt-get install -y \
-    gcc libc-dev bash make git
-
-# Set the working directory
-WORKDIR /go/src/app
+RUN apk add --no-cache git make
 
 # Copy the Go application source code
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the source code
 COPY . .
 
 # Build the application
-RUN go mod tidy && go build -o build/subscriber main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o indexer ./cmd/indexer
 
-# Final stage
-FROM debian:bookworm-slim
+# Use a minimal alpine image
+FROM alpine:latest
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y bash libc6 libgcc1 libstdc++6 && apt-get clean
+WORKDIR /app
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
+
+# Copy binary from builder
+COPY --from=builder /app/indexer .
+
+# Copy config directory
+COPY --from=builder /app/config ./config
 
 # Create a new user and group
-RUN groupadd -r nuklai && useradd --no-log-init -r -g nuklai nuklai
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
 
-# Copy the build artifacts from the builder stage
-COPY --from=builder --chown=nuklai:nuklai /go/src/app/build /app
+# Change ownership of the application files
+RUN chown -R appuser:appgroup /app
 
 # Set permissions and ownership
 USER nuklai
 
-# Set the working directory and entry point
-WORKDIR /app
-CMD [ "/app/subscriber" ]
-
 # Expose necessary ports
 EXPOSE 8080
-EXPOSE 50051
 
-# Metadata
-LABEL Name=subscriber
+# Run app
+ENTRYPOINT ["./indexer"]
+CMD ["--config", "./config/config.yaml"]
