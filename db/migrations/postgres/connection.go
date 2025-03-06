@@ -60,3 +60,29 @@ func NewDatabase(cfg *config.DatabaseConfig) (*Database, error) {
 		cfg:  cfg,
 	}, nil
 }
+
+// Close the db connection
+func (db *Database) Close() {
+	if db.pool != nil {
+		db.pool.Close()
+		logger.Info("Database connection closed")
+	}
+}
+
+// Returns the connection pool
+func (db *Database) Pool() *pgxpool.Pool {
+	return db.pool
+}
+
+// Check db connection
+func (db *Database) Ping(ctx context.Context) error {
+	return db.pool.Ping(ctx)
+}
+
+// Run the db migrations
+// TODO: use a migration lib: golang-migrate/migrate
+func (db *Database) RunMigrations(migrationsPath string) error {
+	logger.Info("Running database migrations", zap.String("path", migrationsPath))
+	// TODO: handle db migration
+	return nil
+}
