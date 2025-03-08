@@ -1,3 +1,6 @@
+// Copyright (C) 2025, Nuklai. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package repository
 
 import (
@@ -54,6 +57,17 @@ type Repository interface {
 	UpdateValidator(ctx context.Context, validator *models.Validator) error
 	SaveValidatorUptime(ctx context.Context, uptime *models.ValidatorUptime) error
 	GetValidatorUptime(ctx context.Context, consensusAddress string, startHeight, endHeight int64) ([]*models.ValidatorUptime, error)
+
+	// Validator rewards
+	SaveValidatorReward(ctx context.Context, reward *models.ValidatorReward) error
+	GetValidatorRewards(ctx context.Context, validatorAddress string, startHeight, endHeight int64) ([]*models.ValidatorReward, error)
+	GetDelegatorRewards(ctx context.Context, delegatorAddress string, startHeight, endHeight int64) ([]*models.ValidatorReward, error)
+
+	// Validator reward slashing
+	SaveSlashingEvent(ctx context.Context, slashing *models.SlashingEvent) error
+	GetSlashingEvents(ctx context.Context, validatorAddress string, startHeight, endHeight int64) ([]*models.SlashingEvent, error)
+
+	// Delegations
 	SaveDelegation(ctx context.Context, delegation *models.Delegation) error
 	GetDelegationsByDelegator(ctx context.Context, delegatorAddress string) ([]*models.Delegation, error)
 	GetDelegationsByValidator(ctx context.Context, validatorAddress string) ([]*models.Delegation, error)

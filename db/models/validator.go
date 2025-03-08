@@ -37,6 +37,32 @@ type ValidatorUptime struct {
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
 
+// Track reward given to a validator/delegator
+type ValidatorReward struct {
+	ID               string    `db:"id" json:"id"`
+	ValidatorAddress string    `db:"validator_address" json:"validator_address"`
+	DelegatorAddress string    `db:"delegator_address" json:"delegator_address"`
+	Amount           Coins     `db:"amount" json:"amount"`
+	BlockHeight      int64     `db:"block_height" json:"block_height"`
+	BlockTime        time.Time `db:"block_time" json:"block_time"`
+
+	// Metadata
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
+// Track validator reward slash events
+type SlashingEvent struct {
+	ID               string    `db:"id" json:"id"`
+	ValidatorAddress string    `db:"validator_address" json:"validator_address"`
+	BlockHeight      int64     `db:"block_height" json:"block_height"`
+	BlockTime        time.Time `db:"block_time" json:"block_time"`
+	SlashReason      string    `db:"slash_reason" json:"slash_reason"`
+	SlashAmount      string    `db:"slash_amount" json:"slash_amount"`
+
+	// Metadata
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
 // Track delegations from an account to a validator
 type Delegation struct {
 	ID               string `db:"id" json:"id"`
