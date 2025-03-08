@@ -175,6 +175,23 @@ CREATE INDEX IF NOT EXISTS idx_validators_operator_address ON validators.validat
 CREATE INDEX IF NOT EXISTS idx_validators_account_address ON validators.validators(account_address);
 CREATE INDEX IF NOT EXISTS idx_validators_status ON validators.validators(status);
 
+-- Create validators rewards table
+CREATE TABLE IF NOT EXISTS validators.rewards (
+    id TEXT PRIMARY KEY,
+    validator_address TEXT NOT NULL REFERENCES validators.validators(operator_address),
+    delegator_address TEXT NOT NULL,
+    amount JSONB NOT NULL,
+    block_height BIGINT NOT NULL REFERENCES blocks.blocks(height) ON DELETE CASCADE,
+    block_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Create indexes on validators rewards
+CREATE INDEX IF NOT EXISTS idx_rewards_validator_address ON validators.rewards(validator_address);
+CREATE INDEX IF NOT EXISTS idx_rewards_delegator_address ON validators.rewards(delegator_address);
+CREATE INDEX IF NOT EXISTS idx_rewards_block_height ON validators.rewards(block_height);
+CREATE INDEX IF NOT EXISTS idx_rewards_block_time ON validators.rewards(block_time);
+
 -- Create validator uptime table
 CREATE TABLE IF NOT EXISTS validators.uptime (
                                                  id TEXT PRIMARY KEY,
@@ -190,6 +207,22 @@ CREATE TABLE IF NOT EXISTS validators.uptime (
 CREATE INDEX IF NOT EXISTS idx_uptime_consensus_address ON validators.uptime(consensus_address);
 CREATE INDEX IF NOT EXISTS idx_uptime_block_height ON validators.uptime(block_height);
 CREATE INDEX IF NOT EXISTS idx_uptime_signed ON validators.uptime(signed);
+
+-- Create validators slashing events table
+CREATE TABLE IF NOT EXISTS validators.slashing_events (
+    id TEXT PRIMARY KEY,
+    validator_address TEXT NOT NULL REFERENCES validators.validators(operator_address),
+    block_height BIGINT NOT NULL REFERENCES blocks.blocks(height) ON DELETE CASCADE,
+    block_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    slash_reason TEXT NOT NULL,
+    slash_amount TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Create indexes on validators slashing events
+CREATE INDEX IF NOT EXISTS idx_slashing_events_validator_address ON validators.slashing_events(validator_address);
+CREATE INDEX IF NOT EXISTS idx_slashing_events_block_height ON validators.slashing_events(block_height);
+CREATE INDEX IF NOT EXISTS idx_slashing_events_block_time ON validators.slashing_events(block_time);
 
 -- Create delegations table
 CREATE TABLE IF NOT EXISTS validators.delegations (

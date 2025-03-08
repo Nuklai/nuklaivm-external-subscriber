@@ -20,7 +20,9 @@ DROP TABLE IF EXISTS governance.deposits;
 DROP TABLE IF EXISTS governance.proposals;
 
 -- Drop validator tables
+DROP TABLE IF EXISTS validators.slashing_events;
 DROP TABLE IF EXISTS validators.delegations;
+DROP TABLE IF EXISTS validators.rewards;
 DROP TABLE IF EXISTS validators.uptime;
 DROP TABLE IF EXISTS validators.validators;
 
