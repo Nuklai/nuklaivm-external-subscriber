@@ -41,7 +41,7 @@ func (f *Fetcher) FetchBlock(ctx context.Context, height int64) (*models.Block, 
 	}
 
 	totalGas := int64(0)
-	for _, txResult := range blockResultsResult.TxsResults {
+	for _, txResult := range blockResultsResult.TxResults {
 		totalGas += txResult.GasUsed
 	}
 
@@ -93,7 +93,7 @@ func (f *Fetcher) FetchBlockWithTransactions(ctx context.Context, height int64) 
 	transactions := make([]*models.Transaction, 0, len(blockResult.Block.Txs))
 	for i, txBytes := range blockResult.Block.Txs {
 		txHash := hex.EncodeToString(txBytes.Hash())
-		txResult := blockResultsResult.TxsResults[i]
+		txResult := blockResultsResult.TxResults[i]
 
 		// Get the transaction details
 		txDetail, err := f.rpcClient.Tx(ctx, txBytes.Hash(), false)
@@ -172,7 +172,7 @@ func (f *Fetcher) FetchEvents(ctx context.Context, height int64) ([]*models.Even
 	// Process tnx events
 	for i, txBytes := range blockResult.Block.Txs {
 		txHash := hex.EncodeToString(txBytes.Hash())
-		txResult := blockResultsResult.TxsResults[i]
+		txResult := blockResultsResult.TxResults[i]
 
 		txEvents, err := f.processEvents(height, blockResult.Block.Time, txHash, i, txResult.Events, "tx")
 		if err != nil {
@@ -218,7 +218,7 @@ func (f *Fetcher) FetchValidators(ctx context.Context, height int64) ([]*models.
 				ConsensusAddress: consensusAddr,
 				OperatorAddress:  operatorAddr,
 				AccountAddress:   accountAddr,
-				Moniker:          val.Name,
+				// Moniker:          val.Name,
 				Identity:         "",
 				Website:          "",
 				SecurityContact:  "",

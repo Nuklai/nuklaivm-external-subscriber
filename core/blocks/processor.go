@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"time"
 
+	ctypes "github.com/cometbft/cometbft/rpc/core/types"
+	"github.com/cometbft/cometbft/types"
 	"github.com/nuklai/nuklaivm-external-subscriber/client/rpc"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/models"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/repository"
 	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
-	"github.com/types/types/types"
 	"go.uber.org/zap"
 )
 
@@ -78,12 +79,12 @@ func (p *Processor) ProcessBlock(ctx context.Context, height int64) error {
 }
 
 // Save block to the repo
-func (p *Processor) saveBlock(ctx context.Context, blockResult *types.ResultBlock, blockResultsResult *types.ResultBlockResults) error {
+func (p *Processor) saveBlock(ctx context.Context, blockResult *ctypes.ResultBlock, blockResultsResult *ctypes.ResultBlockResults) error {
 	block := blockResult.Block
 
 	// Calculate the total gas
 	totalGas := int64(0)
-	for _, txResult := range blockResultsResult.TxsResults {
+	for _, txResult := range blockResultsResult.TxResults {
 		totalGas += txResult.GasUsed
 	}
 
@@ -114,9 +115,9 @@ func (p *Processor) saveBlock(ctx context.Context, blockResult *types.ResultBloc
 }
 
 // Saves the txn to the repo
-func (p *Processor) saveTransactions(ctx context.Context, blockResult *types.ResultBlock, blockResultsResult *types.ResultBlockResults) error {
+func (p *Processor) saveTransactions(ctx context.Context, blockResult *ctypes.ResultBlock, blockResultsResult *ctypes.ResultBlockResults) error {
 	block := blockResult.Block
-	txResults := blockResultsResult.TxsResults
+	txResults := blockResultsResult.TxResults
 
 	// Process each transaction
 	for i, txBytes := range block.Txs {
