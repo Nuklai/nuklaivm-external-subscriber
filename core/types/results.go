@@ -78,7 +78,16 @@ type ResultValidators struct {
 
 // Contains results of an ABCI query
 type ResultABCIQuery struct {
-	Response abci.ResponseQuery `json:"response"`
+	Response struct {
+		Code   uint32         `json:"code"`
+		Log    string         `json:"log"`
+		Info   string         `json:"info"`
+		Data   bytes.HexBytes `json:"data"`
+		Key    bytes.HexBytes `json:"key"`
+		Value  bytes.HexBytes `json:"value"`
+		Proof  bytes.HexBytes `json:"proof"`
+		Height int64          `json:"height"`
+	} `json:"response"`
 }
 
 // Contains result after broadcasting a txn

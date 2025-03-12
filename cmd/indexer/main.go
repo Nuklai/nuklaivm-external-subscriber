@@ -98,8 +98,9 @@ func run(_ *cobra.Command, _ []string) {
 		logger.Fatal("Failed to create indexer", zap.Error(err))
 	}
 
-	// Create context with timeout
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	// Create context with timeout, use the cancel function
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	// Start indexer
 	if err := indexer.Start(ctx); err != nil {
@@ -113,5 +114,11 @@ func run(_ *cobra.Command, _ []string) {
 
 	logger.Info("Shutting down Nuklai indexer...")
 
-	// TODO: Gracefully stop all services
+	// Create a new context with timeout for shutdown
+	_, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	// TODO: Use shutdownCtx
+
+	indexer.Stop()
 }
