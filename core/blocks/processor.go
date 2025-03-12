@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/cometbft/cometbft/types"
 	"github.com/nuklai/nuklaivm-external-subscriber/client/rpc"
@@ -64,7 +65,7 @@ func (p *Processor) ProcessBlock(ctx context.Context, height int64) error {
 	}
 
 	// Process end-block events
-	err = p.processEndBlockEvents(ctx, height, blockResult.Block.Time, blockResultsResult.EndBlockEvents)
+	err = p.processEndBlockEvents(ctx, height, blockResult.Block.Time, blockResultsResult.FinalizeBlockEvents)
 	if err != nil {
 		return fmt.Errorf("failed to process end-block events at height %d: %w", height, err)
 	}
@@ -189,22 +190,22 @@ func (p *Processor) saveTransactions(ctx context.Context, blockResult *ctypes.Re
 }
 
 // Processes begin-block events
-func (p *Processor) processBeginBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []types.Event) error {
+func (p *Processor) processBeginBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []abci.Event) error {
 	return p.processEvents(ctx, height, blockTime, "", -1, events, "begin_block")
 }
 
 // Pprocesses end-block events
-func (p *Processor) processEndBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []types.Event) error {
+func (p *Processor) processEndBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []abci.Event) error {
 	return p.processEvents(ctx, height, blockTime, "", -1, events, "end_block")
 }
 
 // Processes txn events
-func (p *Processor) processTxEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []types.Event) error {
+func (p *Processor) processTxEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []abci.Event) error {
 	return p.processEvents(ctx, height, blockTime, txHash, txIndex, events, "tx")
 }
 
 // Processes events
-func (p *Processor) processEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []types.Event, source string) error {
+func (p *Processor) processEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []abci.Event, source string) error {
 	for i, event := range events {
 		module := extractModuleFromEventType(event.Type)
 
