@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/nuklai/nuklaivm-external-subscriber/core"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -88,15 +89,16 @@ func run(_ *cobra.Command, _ []string) {
 		zap.Strings("rpc_endpoints", cfg.Blockchain.RPCEndpoints),
 	)
 
-	// TODO: Init db
+	// Initialize indexer core 
+	indexer, err := core.NewIndexer(cfg)
+	if err != nil {
+		logger.Fatal("Failed to create indexer", zap.Error(err))
+	}
 
-	// TODO: Init blockchain client
-
-	// TODO: Init indexer core components
-
-	// TODO: Init API server
-
-	// TODO: Start all services
+	// Start indexer
+	if err := indexer.Start(ctx); err != nil {
+		logger.Fatal("Failed to start indexer", zap.Error(err))
+	}
 
 	// Wait for interrupt signal to gracefully shut down
 	quit := make(chan os.Signal, 1)
