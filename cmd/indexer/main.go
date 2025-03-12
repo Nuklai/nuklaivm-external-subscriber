@@ -4,12 +4,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/nuklai/nuklaivm-external-subscriber/core"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
+
+	"github.com/nuklai/nuklaivm-external-subscriber/core"
 
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
 	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
@@ -89,11 +92,14 @@ func run(_ *cobra.Command, _ []string) {
 		zap.Strings("rpc_endpoints", cfg.Blockchain.RPCEndpoints),
 	)
 
-	// Initialize indexer core 
+	// Initialize indexer core
 	indexer, err := core.NewIndexer(cfg)
 	if err != nil {
 		logger.Fatal("Failed to create indexer", zap.Error(err))
 	}
+
+	// Create context with timeout
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
 	// Start indexer
 	if err := indexer.Start(ctx); err != nil {

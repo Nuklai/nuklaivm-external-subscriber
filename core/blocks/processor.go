@@ -13,7 +13,7 @@ import (
 	"github.com/nuklai/nuklaivm-external-subscriber/db/models"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/repository"
 	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
-	cometbft "github.com/cometbft/cometbft/types"
+	"github.com/types/types/types"
 	"go.uber.org/zap"
 )
 
@@ -78,7 +78,7 @@ func (p *Processor) ProcessBlock(ctx context.Context, height int64) error {
 }
 
 // Save block to the repo
-func (p *Processor) saveBlock(ctx context.Context, blockResult *cometbft.ResultBlock, blockResultsResult *cometbft.ResultBlockResults) error {
+func (p *Processor) saveBlock(ctx context.Context, blockResult *types.ResultBlock, blockResultsResult *types.ResultBlockResults) error {
 	block := blockResult.Block
 
 	// Calculate the total gas
@@ -114,7 +114,7 @@ func (p *Processor) saveBlock(ctx context.Context, blockResult *cometbft.ResultB
 }
 
 // Saves the txn to the repo
-func (p *Processor) saveTransactions(ctx context.Context, blockResult *cometbft.ResultBlock, blockResultsResult *cometbft.ResultBlockResults) error {
+func (p *Processor) saveTransactions(ctx context.Context, blockResult *types.ResultBlock, blockResultsResult *types.ResultBlockResults) error {
 	block := blockResult.Block
 	txResults := blockResultsResult.TxsResults
 
@@ -188,22 +188,22 @@ func (p *Processor) saveTransactions(ctx context.Context, blockResult *cometbft.
 }
 
 // Processes begin-block events
-func (p *Processor) processBeginBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []cometbft.Event) error {
+func (p *Processor) processBeginBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []types.Event) error {
 	return p.processEvents(ctx, height, blockTime, "", -1, events, "begin_block")
 }
 
 // Pprocesses end-block events
-func (p *Processor) processEndBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []cometbft.Event) error {
+func (p *Processor) processEndBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []types.Event) error {
 	return p.processEvents(ctx, height, blockTime, "", -1, events, "end_block")
 }
 
 // Processes txn events
-func (p *Processor) processTxEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []cometbft.Event) error {
+func (p *Processor) processTxEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []types.Event) error {
 	return p.processEvents(ctx, height, blockTime, txHash, txIndex, events, "tx")
 }
 
 // Processes events
-func (p *Processor) processEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []cometbft.Event, source string) error {
+func (p *Processor) processEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []types.Event, source string) error {
 	for i, event := range events {
 		module := extractModuleFromEventType(event.Type)
 
@@ -259,22 +259,22 @@ func extractModuleFromEventType(eventType string) string {
 	return "unknown"
 }
 
-func extractSigners(tx cometbft.Tx) ([]string, error) {
+func extractSigners(tx types.Tx) ([]string, error) {
 	// TODO: Extract Signer from transactions
 	return []string{}, nil
 }
 
-func extractMessages(tx cometbft.Tx) (models.Messages, error) {
+func extractMessages(tx types.Tx) (models.Messages, error) {
 	// TODO: Extract Messages from transactions
 	return models.Messages{}, nil
 }
 
-func extractFee(tx cometbft.Tx) string {
+func extractFee(tx types.Tx) string {
 	// TODO: Extract Fee from transactions
 	return "0"
 }
 
-func extractMemo(tx cometbft.Tx) string {
+func extractMemo(tx types.Tx) string {
 	// TODO: Extract Memo from transactions
 	return ""
 }

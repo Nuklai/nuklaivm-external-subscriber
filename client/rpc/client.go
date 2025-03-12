@@ -7,13 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
-	comethttp "github.com/cometbft/cometbft/rpc/client/http"
-	"github.com/cometbft/cometbft/types"
-	"go.uber.org/zap"
 	"math/rand"
 	"sync"
 	"time"
+
+	comethttp "github.com/cometbft/cometbft/rpc/client/http"
+	"github.com/cometbft/cometbft/types"
+	ctypes "github.com/cometbft/cometbft/types"
+	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
+	"go.uber.org/zap"
 )
 
 // Wrapper for the tendermint RPC client
@@ -30,7 +32,7 @@ func NewClient(endpoints []string) (*Client, error) {
 
 	clients := make([]*comethttp.HTTP, 0, len(endpoints))
 	for _, endpoint := range endpoints {
-		client, err := comethttp.New(endpoint, "/websocket")
+		client, err := comethttp.New(endpoint)
 		if err != nil {
 			logger.Warn("Failed to create RPC client", zap.String("endpoint", endpoint), zap.Error(err))
 			continue
@@ -48,6 +50,32 @@ func NewClient(endpoints []string) (*Client, error) {
 	}, nil
 }
 
+// Start all clients
+func (c *Client) Start() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for _, client := range c.clients {
+		if err := client.Start(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Stop all clients
+func (c *Client) Stop() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for _, client := range c.clients {
+		if err := client.Stop(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Returns a random healthy RPC client
 func (c *Client) getClient() (*comethttp.HTTP, error) {
 	c.mutex.RLock()
@@ -57,13 +85,14 @@ func (c *Client) getClient() (*comethttp.HTTP, error) {
 		return nil, errors.New("no RPC clients available")
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	idx := rand.Intn(len(c.clients))
+	// Use a more secure random number
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	idx := r.Intn(len(c.clients))
 	return c.clients[idx], nil
 }
 
 // Returns the node status
-func (c *Client) Status(ctx context.Context) (*types.ResultStatus, error) {
+func (c *Client) Status(ctx context.Context) (*ctypes.ResultStatus, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
@@ -78,7 +107,7 @@ func (c *Client) Status(ctx context.Context) (*types.ResultStatus, error) {
 }
 
 // Returns the block at the specified height
-func (c *Client) Block(ctx context.Context, height int64) (*types.ResultBlock, error) {
+func (c *Client) Block(ctx context.Context, height int64) (*ctypes.ResultBlock, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
@@ -93,7 +122,7 @@ func (c *Client) Block(ctx context.Context, height int64) (*types.ResultBlock, e
 }
 
 // Returns the block results at the specified height
-func (c *Client) BlockResults(ctx context.Context, height int64) (*types.ResultBlockResults, error) {
+func (c *Client) BlockResults(ctx context.Context, height int64) (*ctypes.ResultBlockResults, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
@@ -108,7 +137,7 @@ func (c *Client) BlockResults(ctx context.Context, height int64) (*types.ResultB
 }
 
 // Returns the validators at the specified height
-func (c *Client) Validators(ctx context.Context, height int64, page, perPage int) (*types.ResultValidators, error) {
+func (c *Client) Validators(ctx context.Context, height int64, page, perPage int) (*ctypes.ResultValidators, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
@@ -123,7 +152,7 @@ func (c *Client) Validators(ctx context.Context, height int64, page, perPage int
 }
 
 // Tx returns the transaction with the specified hash
-func (c *Client) Tx(ctx context.Context, hash []byte, prove bool) (*types.ResultTx, error) {
+func (c *Client) Tx(ctx context.Context, hash []byte, prove bool) (*ctypes.ResultTx, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
@@ -138,7 +167,7 @@ func (c *Client) Tx(ctx context.Context, hash []byte, prove bool) (*types.Result
 }
 
 // Start's a search for transactions by query
-func (c *Client) TxSearch(ctx context.Context, query string, prove bool, page, perPage int, orderBy string) (*types.ResultTxSearch, error) {
+func (c *Client) TxSearch(ctx context.Context, query string, prove bool, page, perPage int, orderBy string) (*ctypes.ResultTxSearch, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
@@ -153,7 +182,7 @@ func (c *Client) TxSearch(ctx context.Context, query string, prove bool, page, p
 }
 
 // Performs an ABCI query
-func (c *Client) ABCIQuery(ctx context.Context, path string, data []byte) (*types.ResultABCIQuery, error) {
+func (c *Client) ABCIQuery(ctx context.Context, path string, data []byte) (*ctypes.ResultABCIQuery, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
@@ -168,7 +197,7 @@ func (c *Client) ABCIQuery(ctx context.Context, path string, data []byte) (*type
 }
 
 // Broadcasts a transaction synchronously
-func (c *Client) BroadcastTxSync(ctx context.Context, tx types.Tx) (*types.ResultBroadcastTx, error) {
+func (c *Client) BroadcastTxSync(ctx context.Context, tx types.Tx) (*ctypes.ResultBroadcastTx, error) {
 	client, err := c.getClient()
 	if err != nil {
 		return nil, err
