@@ -10,7 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	cometbft "github.com/cometbft/cometbft/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/types"
 	"github.com/nuklai/nuklaivm-external-subscriber/client/rpc"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/models"
 	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
@@ -163,11 +164,12 @@ func (f *Fetcher) FetchEvents(ctx context.Context, height int64) ([]*models.Even
 
 	events := make([]*models.Event, 0)
 
-	beginBlockEvents, err := f.processEvents(height, blockResult.Block.Time, "", -1, blockResultsResult.BeginBlockEvents, "begin_block")
+	// Process finalize-block events
+	finalizeBlockEvents, err := f.processEvents(height, blockResult.Block.Time, "", -1, blockResultsResult.FinalizeBlockEvents, "finalize_block")
 	if err != nil {
-		return nil, fmt.Errorf("failed to process begin-block events: %w", err)
+		return nil, fmt.Errorf("failed to process finalize-block events: %w", err)
 	}
-	events = append(events, beginBlockEvents...)
+	events = append(events, finalizeBlockEvents...)
 
 	// Process tnx events
 	for i, txBytes := range blockResult.Block.Txs {
@@ -180,13 +182,6 @@ func (f *Fetcher) FetchEvents(ctx context.Context, height int64) ([]*models.Even
 		}
 		events = append(events, txEvents...)
 	}
-
-	// Process end-block events
-	endBlockEvents, err := f.processEvents(height, blockResult.Block.Time, "", -1, blockResultsResult.EndBlockEvents, "end_block")
-	if err != nil {
-		return nil, fmt.Errorf("failed to process end-block events: %w", err)
-	}
-	events = append(events, endBlockEvents...)
 
 	return events, nil
 }
@@ -219,15 +214,15 @@ func (f *Fetcher) FetchValidators(ctx context.Context, height int64) ([]*models.
 				OperatorAddress:  operatorAddr,
 				AccountAddress:   accountAddr,
 				// Moniker:          val.Name,
-				Identity:         "",
-				Website:          "",
-				SecurityContact:  "",
-				Details:          "",
-				CommissionRate:   "0",
-				VotingPower:      strconv.FormatInt(votingPower, 10),
-				Status:           f.getValidatorStatus(val),
-				CreatedAt:        time.Now().UTC(),
-				UpdatedAt:        time.Now().UTC(),
+				Identity:        "",
+				Website:         "",
+				SecurityContact: "",
+				Details:         "",
+				CommissionRate:  "0",
+				VotingPower:     strconv.FormatInt(votingPower, 10),
+				Status:          f.getValidatorStatus(val),
+				CreatedAt:       time.Now().UTC(),
+				UpdatedAt:       time.Now().UTC(),
 			}
 
 			validators = append(validators, validator)
@@ -251,14 +246,14 @@ func (f *Fetcher) getTxStatus(code uint32) string {
 	return "failed"
 }
 
-func (f *Fetcher) getValidatorStatus(validator *cometbft.Validator) string {
+func (f *Fetcher) getValidatorStatus(validator *types.Validator) string {
 	if validator.VotingPower <= 0 {
 		return "inactive"
 	}
 	return "active"
 }
 
-func (f *Fetcher) processEvents(height int64, blockTime time.Time, txHash string, txIndex int, events []cometbft.Event, source string) ([]*models.Event, error) {
+func (f *Fetcher) processEvents(height int64, blockTime time.Time, txHash string, txIndex int, events []abci.Event, source string) ([]*models.Event, error) {
 	result := make([]*models.Event, 0, len(events))
 
 	for i, event := range events {
@@ -310,18 +305,18 @@ func (f *Fetcher) extractModuleFromEventType(eventType string) string {
 }
 
 // TODOs
-func (f *Fetcher) extractSigners(tx cometbft.Tx) ([]string, error) {
+func (f *Fetcher) extractSigners(tx types.Tx) ([]string, error) {
 	return []string{}, nil
 }
 
-func (f *Fetcher) extractMessages(tx cometbft.Tx) (models.Messages, error) {
+func (f *Fetcher) extractMessages(tx types.Tx) (models.Messages, error) {
 	return models.Messages{}, nil
 }
 
-func (f *Fetcher) extractFee(tx cometbft.Tx) string {
+func (f *Fetcher) extractFee(tx types.Tx) string {
 	return "0"
 }
 
-func (f *Fetcher) extractMemo(tx cometbft.Tx) string {
+func (f *Fetcher) extractMemo(tx types.Tx) string {
 	return ""
 }

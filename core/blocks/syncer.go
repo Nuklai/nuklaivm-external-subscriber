@@ -5,10 +5,12 @@ package blocks
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/nuklai/nuklaivm-external-subscriber/db/repository"
 	"sync"
 	"time"
+
+	"github.com/nuklai/nuklaivm-external-subscriber/db/repository"
 
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
 	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
@@ -242,7 +244,7 @@ func (s *Syncer) getSyncRange(ctx context.Context) (int64, int64, error) {
 	if s.latestSyncedHeight == 0 {
 		latestBlock, err := s.processor.repository.GetLatestBlock(ctx)
 		if err != nil {
-			if err == repository.ErrNotFound {
+			if errors.Is(err, repository.ErrNotFound) {
 				s.latestSyncedHeight = s.startHeight - 1
 			} else {
 				return 0, 0, fmt.Errorf("failed to get latest block from repository: %w", err)

@@ -58,16 +58,10 @@ func (p *Processor) ProcessBlock(ctx context.Context, height int64) error {
 		return fmt.Errorf("failed to save transactions at height %d: %w", height, err)
 	}
 
-	// Process begin-block events
-	err = p.processBeginBlockEvents(ctx, height, blockResult.Block.Time, blockResultsResult.BeginBlockEvents)
+	// Process finalize-block events
+	err = p.processFinalizeBlockEvents(ctx, height, blockResult.Block.Time, blockResultsResult.FinalizeBlockEvents)
 	if err != nil {
-		return fmt.Errorf("failed to process begin-block events at height %d: %w", height, err)
-	}
-
-	// Process end-block events
-	err = p.processEndBlockEvents(ctx, height, blockResult.Block.Time, blockResultsResult.FinalizeBlockEvents)
-	if err != nil {
-		return fmt.Errorf("failed to process end-block events at height %d: %w", height, err)
+		return fmt.Errorf("failed to process finalize-block events at height %d: %w", height, err)
 	}
 
 	logger.Info("Processed block",
@@ -189,14 +183,9 @@ func (p *Processor) saveTransactions(ctx context.Context, blockResult *ctypes.Re
 	return nil
 }
 
-// Processes begin-block events
-func (p *Processor) processBeginBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []abci.Event) error {
-	return p.processEvents(ctx, height, blockTime, "", -1, events, "begin_block")
-}
-
-// Pprocesses end-block events
-func (p *Processor) processEndBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []abci.Event) error {
-	return p.processEvents(ctx, height, blockTime, "", -1, events, "end_block")
+// Processes finalize-block events
+func (p *Processor) processFinalizeBlockEvents(ctx context.Context, height int64, blockTime time.Time, events []abci.Event) error {
+	return p.processEvents(ctx, height, blockTime, "", -1, events, "finalize_block")
 }
 
 // Processes txn events
@@ -219,8 +208,8 @@ func (p *Processor) processEvents(ctx context.Context, height int64, blockTime t
 		attributes := make(models.Attributes, 0, len(event.Attributes))
 		for _, attr := range event.Attributes {
 			attributes = append(attributes, models.Attribute{
-				Key:   string(attr.Key),
-				Value: string(attr.Value),
+				Key:   attr.Key,
+				Value: attr.Value,
 			})
 		}
 

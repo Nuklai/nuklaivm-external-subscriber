@@ -6,7 +6,9 @@ package core_types
 import (
 	"time"
 
+	"cosmossdk.io/api/tendermint/p2p"
 	abci "github.com/cometbft/cometbft/abci/types"
+	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
 	"github.com/cometbft/cometbft/libs/bytes"
 	"github.com/cometbft/cometbft/types"
 )
@@ -19,19 +21,19 @@ type ResultBlock struct {
 
 // Contains results from block execution
 type ResultBlockResults struct {
-	Height                int64                  `json:"height"`
-	TxsResults            []*abci.ExecTxResult   `json:"txs_results"`
-	BeginBlockEvents      []abci.Event           `json:"begin_block_events"`
-	EndBlockEvents        []abci.Event           `json:"end_block_events"`
-	ValidatorUpdates      []abci.ValidatorUpdate `json:"validator_updates"`
-	ConsensusParamUpdates *abci.ConsensusParams  `json:"consensus_param_updates"`
+	Height                int64                     `json:"height"`
+	TxResults             []*abci.ExecTxResult      `json:"txs_results"`
+	FinalizeBlockEvents   []abci.Event              `json:"finalize_block_events"`
+	ValidatorUpdates      []abci.ValidatorUpdate    `json:"validator_updates"`
+	ConsensusParamUpdates *cmtproto.ConsensusParams `json:"consensus_param_updates"`
+	AppHash               []byte                    `json:"app_hash"`
 }
 
 // Contains a node status info
 type ResultStatus struct {
-	NodeInfo      types.NodeInfo `json:"node_info"`
-	SyncInfo      SyncInfo       `json:"sync_info"`
-	ValidatorInfo ValidatorInfo  `json:"validator_info"`
+	NodeInfo      p2p.DefaultNodeInfo `json:"node_info"`
+	SyncInfo      SyncInfo            `json:"sync_info"`
+	ValidatorInfo ValidatorInfo       `json:"validator_info"`
 }
 
 // Contains sync status info
