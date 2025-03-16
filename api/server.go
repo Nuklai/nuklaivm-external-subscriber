@@ -207,6 +207,3 @@ func rateLimitingMiddleware(requestsPerMinute int) func(http.Handler) http.Handl
 		})
 	}
 }
-
-// Init mutex for the rate limiting middleware
-var mu sync.Mutex
