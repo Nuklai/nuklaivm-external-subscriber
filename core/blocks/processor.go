@@ -13,8 +13,10 @@ import (
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/cometbft/cometbft/types"
 	"github.com/nuklai/nuklaivm-external-subscriber/client/rpc"
+	"github.com/nuklai/nuklaivm-external-subscriber/core/parser"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/models"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/repository"
+	"github.com/nuklai/nuklaivm-external-subscriber/metrics"
 	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
 	"go.uber.org/zap"
 )
@@ -23,17 +25,21 @@ import (
 type Processor struct {
 	rpcClient  *rpc.Client
 	repository repository.Repository
+	txParser   *parser.TxParser
 }
 
 func NewProcessor(rpcClient *rpc.Client, repo repository.Repository) *Processor {
 	return &Processor{
 		rpcClient:  rpcClient,
 		repository: repo,
+		txParser:   parser.NewTxParser(),
 	}
 }
 
 // Processes a block at the specified height
 func (p *Processor) ProcessBlock(ctx context.Context, height int64) error {
+	startTime := time.Now()
+
 	// Get the block from the RPC
 	blockResult, err := p.rpcClient.Block(ctx, height)
 	if err != nil {
@@ -68,7 +74,12 @@ func (p *Processor) ProcessBlock(ctx context.Context, height int64) error {
 		zap.Int64("height", height),
 		zap.Time("time", blockResult.Block.Time),
 		zap.Int("num_txs", len(blockResult.Block.Txs)),
+		zap.Duration("duration", time.Since(startTime)),
 	)
+
+	metrics.BlocksProcessed.Inc()
+	metrics.BlockProcessingTime.Observe(time.Since(startTime).Seconds())
+	metrics.TransactionsProcessed.Add(float64(len(blockResult.Block.Txs)))
 
 	return nil
 }
