@@ -1,5 +1,68 @@
 # NuklaiVM External Subscriber
 
+
+
+
+
+
+
+
+
+
+
+
+GET /api/v1/health: Health stuff
+GET /api/v1/blocks: Get blocks
+GET /api/v1/blocks/{height}: Get block by height
+GET /api/v1/transactions: Get txn
+GET /api/v1/transactions/{hash}: Get txn by hash
+GET /api/v1/accounts/{address}: Get account details
+GET /api/v1/datasets: Get datasets
+GET /api/v1/datasets/{id}: Get dataset by it's ID
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 The `NuklaiVM External Subscriber` is an external data collector for the NuklaiVM blockchain. This application listens to blockchain events and saves block, transaction, and action data to a PostgreSQL database with TimescaleDB for efficient time-series data handling. It provides both a gRPC server to receive blockchain data in real time and a REST API for querying historical blockchain data.
 
 ## Key Features
