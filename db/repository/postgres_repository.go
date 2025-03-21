@@ -5,11 +5,16 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
+	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/models"
 	"github.com/nuklai/nuklaivm-external-subscriber/db/postgres"
+	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
+	"go.uber.org/zap"
 )
 
 type PostgresRepository struct {
@@ -24,13 +29,103 @@ func NewPostgresRepository(db *postgres.Database) Repository {
 
 // Block operations
 func (r *PostgresRepository) SaveBlock(ctx context.Context, block *models.Block) error {
-	// TODO
+	query := `
+		INSERT INTO blocks.blocks (
+			height, hash, proposer_address, num_txs, total_gas, size, time, 
+			app_hash, version, chain_id, last_block_id, last_commit_hash, 
+			validators_hash, next_validators_hash, consensus_hash, data_hash, 
+			evidence_hash, created_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+		)
+		ON CONFLICT (height) DO UPDATE SET
+			hash = EXCLUDED.hash,
+			proposer_address = EXCLUDED.proposer_address,
+			num_txs = EXCLUDED.num_txs,
+			total_gas = EXCLUDED.total_gas,
+			size = EXCLUDED.size,
+			time = EXCLUDED.time,
+			app_hash = EXCLUDED.app_hash,
+			version = EXCLUDED.version,
+			chain_id = EXCLUDED.chain_id,
+			last_block_id = EXCLUDED.last_block_id,
+			last_commit_hash = EXCLUDED.last_commit_hash,
+			validators_hash = EXCLUDED.validators_hash,
+			next_validators_hash = EXCLUDED.next_validators_hash,
+			consensus_hash = EXCLUDED.consensus_hash,
+			data_hash = EXCLUDED.data_hash,
+			evidence_hash = EXCLUDED.evidence_hash
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		block.Height,
+		block.Hash,
+		block.ProposerAddress,
+		block.NumTxs,
+		block.TotalGas,
+		block.Size,
+		block.Time,
+		block.AppHash,
+		block.Version,
+		block.ChainID,
+		block.LastBlockID,
+		block.LastCommitHash,
+		block.ValidatorsHash,
+		block.NextValidatorsHash,
+		block.ConsensusHash,
+		block.DataHash,
+		block.EvidenceHash,
+		block.CreatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save block at height %d: %w", block.Height, err)
+	}
+
 	return nil
 }
 
 func (r *PostgresRepository) GetBlockByHeight(ctx context.Context, height int64) (*models.Block, error) {
-	// TODO
-	return nil, nil
+	query := `
+		SELECT 
+			height, hash, proposer_address, num_txs, total_gas, size, time,
+			app_hash, version, chain_id, last_block_id, last_commit_hash,
+			validators_hash, next_validators_hash, consensus_hash, data_hash,
+			evidence_hash, created_at
+		FROM blocks.blocks
+		WHERE height = $1
+	`
+
+	var block models.Block
+	err := r.db.QueryRow(ctx, query, height).Scan(
+		&block.Height,
+		&block.Hash,
+		&block.ProposerAddress,
+		&block.NumTxs,
+		&block.TotalGas,
+		&block.Size,
+		&block.Time,
+		&block.AppHash,
+		&block.Version,
+		&block.ChainID,
+		&block.LastBlockID,
+		&block.LastCommitHash,
+		&block.ValidatorsHash,
+		&block.NextValidatorsHash,
+		&block.ConsensusHash,
+		&block.DataHash,
+		&block.EvidenceHash,
+		&block.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get block at height %d: %w", height, err)
+	}
+
+	return &block, nil
 }
 
 func (r *PostgresRepository) GetBlockByHash(ctx context.Context, hash string) (*models.Block, error) {
@@ -39,8 +134,47 @@ func (r *PostgresRepository) GetBlockByHash(ctx context.Context, hash string) (*
 }
 
 func (r *PostgresRepository) GetLatestBlock(ctx context.Context) (*models.Block, error) {
-	// TODO
-	return nil, nil
+	query := `
+		SELECT 
+			height, hash, proposer_address, num_txs, total_gas, size, time,
+			app_hash, version, chain_id, last_block_id, last_commit_hash,
+			validators_hash, next_validators_hash, consensus_hash, data_hash,
+			evidence_hash, created_at
+		FROM blocks.blocks
+		ORDER BY height DESC
+		LIMIT 1
+	`
+
+	var block models.Block
+	err := r.db.QueryRow(ctx, query).Scan(
+		&block.Height,
+		&block.Hash,
+		&block.ProposerAddress,
+		&block.NumTxs,
+		&block.TotalGas,
+		&block.Size,
+		&block.Time,
+		&block.AppHash,
+		&block.Version,
+		&block.ChainID,
+		&block.LastBlockID,
+		&block.LastCommitHash,
+		&block.ValidatorsHash,
+		&block.NextValidatorsHash,
+		&block.ConsensusHash,
+		&block.DataHash,
+		&block.EvidenceHash,
+		&block.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get latest block: %w", err)
+	}
+
+	return &block, nil
 }
 
 func (r *PostgresRepository) GetBlocksInRange(ctx context.Context, startHeight, endHeight int64) ([]*models.Block, error) {
@@ -54,8 +188,61 @@ func (r *PostgresRepository) GetBlocksByTime(ctx context.Context, startTime, end
 }
 
 // Txn operations
+
 func (r *PostgresRepository) SaveTransaction(ctx context.Context, tx *models.Transaction) error {
-	// TODO
+	query := `
+		INSERT INTO transactions.transactions (
+			hash, block_height, block_time, index, gas_wanted, gas_used,
+			fee, memo, error_log, status, codespace, messages, signers, created_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+		)
+		ON CONFLICT (hash) DO UPDATE SET
+			block_height = EXCLUDED.block_height,
+			block_time = EXCLUDED.block_time,
+			index = EXCLUDED.index,
+			gas_wanted = EXCLUDED.gas_wanted,
+			gas_used = EXCLUDED.gas_used,
+			fee = EXCLUDED.fee,
+			memo = EXCLUDED.memo,
+			error_log = EXCLUDED.error_log,
+			status = EXCLUDED.status,
+			codespace = EXCLUDED.codespace,
+			messages = EXCLUDED.messages,
+			signers = EXCLUDED.signers
+	`
+
+	messagesJSON, err := json.Marshal(tx.Messages)
+	if err != nil {
+		return fmt.Errorf("failed to marshal transaction messages: %w", err)
+	}
+
+	signersJSON, err := json.Marshal(tx.Signers)
+	if err != nil {
+		return fmt.Errorf("failed to marshal transaction signers: %w", err)
+	}
+
+	_, err = r.db.Exec(ctx, query,
+		tx.Hash,
+		tx.BlockHeight,
+		tx.BlockTime,
+		tx.Index,
+		tx.GasWanted,
+		tx.GasUsed,
+		tx.Fee,
+		tx.Memo,
+		tx.ErrorLog,
+		tx.Status,
+		tx.Codespace,
+		messagesJSON,
+		signersJSON,
+		tx.CreatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save transaction %s: %w", tx.Hash, err)
+	}
+
 	return nil
 }
 
@@ -65,8 +252,68 @@ func (r *PostgresRepository) GetTransactionByHash(ctx context.Context, hash stri
 }
 
 func (r *PostgresRepository) GetTransactionsByBlockHeight(ctx context.Context, height int64) ([]*models.Transaction, error) {
-	// TODO
-	return nil, nil
+	query := `
+		SELECT 
+			hash, block_height, block_time, index, gas_wanted, gas_used,
+			fee, memo, error_log, status, codespace, messages, signers, created_at
+		FROM transactions.transactions
+		WHERE block_height = $1
+		ORDER BY index ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, height)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query transactions for block %d: %w", height, err)
+	}
+	defer rows.Close()
+
+	var transactions []*models.Transaction
+	for rows.Next() {
+		var tx models.Transaction
+		var messagesJSON, signersJSON []byte
+
+		err := rows.Scan(
+			&tx.Hash,
+			&tx.BlockHeight,
+			&tx.BlockTime,
+			&tx.Index,
+			&tx.GasWanted,
+			&tx.GasUsed,
+			&tx.Fee,
+			&tx.Memo,
+			&tx.ErrorLog,
+			&tx.Status,
+			&tx.Codespace,
+			&messagesJSON,
+			&signersJSON,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan transaction row: %w", err)
+		}
+
+		if err := json.Unmarshal(messagesJSON, &tx.Messages); err != nil {
+			logger.Warn("Failed to unmarshal transaction messages",
+				zap.String("hash", tx.Hash),
+				zap.Error(err),
+			)
+		}
+
+		if err := json.Unmarshal(signersJSON, &tx.Signers); err != nil {
+			logger.Warn("Failed to unmarshal transaction signers",
+				zap.String("hash", tx.Hash),
+				zap.Error(err),
+			)
+		}
+
+		transactions = append(transactions, &tx)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating transaction rows: %w", err)
+	}
+
+	return transactions, nil
 }
 
 func (r *PostgresRepository) GetTransactionsByAddress(ctx context.Context, address string, limit, offset int) ([]*models.Transaction, error) {
@@ -76,7 +323,46 @@ func (r *PostgresRepository) GetTransactionsByAddress(ctx context.Context, addre
 
 // Event operations
 func (r *PostgresRepository) SaveEvent(ctx context.Context, event *models.Event) error {
-	// TODO
+	query := `
+		INSERT INTO events.events (
+			id, block_height, block_time, tx_hash, tx_index, event_type,
+			event_index, module, attributes, created_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+		)
+		ON CONFLICT (id) DO UPDATE SET
+			block_height = EXCLUDED.block_height,
+			block_time = EXCLUDED.block_time,
+			tx_hash = EXCLUDED.tx_hash,
+			tx_index = EXCLUDED.tx_index,
+			event_type = EXCLUDED.event_type,
+			event_index = EXCLUDED.event_index,
+			module = EXCLUDED.module,
+			attributes = EXCLUDED.attributes
+	`
+
+	attributesJSON, err := json.Marshal(event.Attributes)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event attributes: %w", err)
+	}
+
+	_, err = r.db.Exec(ctx, query,
+		event.ID,
+		event.BlockHeight,
+		event.BlockTime,
+		event.TxHash,
+		event.TxIndex,
+		event.EventType,
+		event.EventIndex,
+		event.Module,
+		attributesJSON,
+		event.CreatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save event %s: %w", event.ID, err)
+	}
+
 	return nil
 }
 
@@ -86,8 +372,58 @@ func (r *PostgresRepository) GetEventsByBlockHeight(ctx context.Context, height 
 }
 
 func (r *PostgresRepository) GetEventsByTxHash(ctx context.Context, txHash string) ([]*models.Event, error) {
-	// TODO
-	return nil, nil
+	query := `
+		SELECT 
+			id, block_height, block_time, tx_hash, tx_index, event_type,
+			event_index, module, attributes, created_at
+		FROM events.events
+		WHERE tx_hash = $1
+		ORDER BY event_index ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, txHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events for transaction %s: %w", txHash, err)
+	}
+	defer rows.Close()
+
+	var events []*models.Event
+	for rows.Next() {
+		var event models.Event
+		var attributesJSON []byte
+
+		err := rows.Scan(
+			&event.ID,
+			&event.BlockHeight,
+			&event.BlockTime,
+			&event.TxHash,
+			&event.TxIndex,
+			&event.EventType,
+			&event.EventIndex,
+			&event.Module,
+			&attributesJSON,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event row: %w", err)
+		}
+
+		// Unmarshal JSON fields
+		if err := json.Unmarshal(attributesJSON, &event.Attributes); err != nil {
+			logger.Warn("Failed to unmarshal event attributes",
+				zap.String("id", event.ID),
+				zap.Error(err),
+			)
+		}
+
+		events = append(events, &event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating event rows: %w", err)
+	}
+
+	return events, nil
 }
 
 func (r *PostgresRepository) GetEventsByType(ctx context.Context, eventType string, limit, offset int) ([]*models.Event, error) {
@@ -102,7 +438,37 @@ func (r *PostgresRepository) GetEventsByModule(ctx context.Context, module strin
 
 // Account operations
 func (r *PostgresRepository) SaveAccount(ctx context.Context, account *models.Account) error {
-	// TODO
+	query := `
+		INSERT INTO accounts.accounts (
+			address, account_type, balance, last_active, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6
+		)
+		ON CONFLICT (address) DO UPDATE SET
+			account_type = EXCLUDED.account_type,
+			balance = EXCLUDED.balance,
+			last_active = EXCLUDED.last_active,
+			updated_at = EXCLUDED.updated_at
+	`
+
+	balanceJSON, err := json.Marshal(account.Balance)
+	if err != nil {
+		return fmt.Errorf("failed to marshal account balance: %w", err)
+	}
+
+	_, err = r.db.Exec(ctx, query,
+		account.Address,
+		account.AccountType,
+		balanceJSON,
+		account.LastActive,
+		account.CreatedAt,
+		account.UpdatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save account %s: %w", account.Address, err)
+	}
+
 	return nil
 }
 
@@ -118,7 +484,52 @@ func (r *PostgresRepository) UpdateAccountBalance(ctx context.Context, address s
 
 // Dataset operations
 func (r *PostgresRepository) SaveDataset(ctx context.Context, dataset *models.Dataset) error {
-	// TODO
+	query := `
+		INSERT INTO datasets.datasets (
+			denom, name, ticker, description, url, supply, categories,
+			license_name, license_symbol, license_url, is_community_dataset,
+			metadata, owner, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+		)
+		ON CONFLICT (denom) DO UPDATE SET
+			name = EXCLUDED.name,
+			ticker = EXCLUDED.ticker,
+			description = EXCLUDED.description,
+			url = EXCLUDED.url,
+			supply = EXCLUDED.supply,
+			categories = EXCLUDED.categories,
+			license_name = EXCLUDED.license_name,
+			license_symbol = EXCLUDED.license_symbol,
+			license_url = EXCLUDED.license_url,
+			is_community_dataset = EXCLUDED.is_community_dataset,
+			metadata = EXCLUDED.metadata,
+			owner = EXCLUDED.owner,
+			updated_at = EXCLUDED.updated_at
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		dataset.Denom,
+		dataset.Name,
+		dataset.Ticker,
+		dataset.Description,
+		dataset.URL,
+		dataset.Supply,
+		dataset.Categories,
+		dataset.LicenseName,
+		dataset.LicenseSymbol,
+		dataset.LicenseURL,
+		dataset.IsCommunityDataset,
+		dataset.Metadata,
+		dataset.Owner,
+		dataset.CreatedAt,
+		dataset.UpdatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save dataset %s: %w", dataset.Denom, err)
+	}
+
 	return nil
 }
 
@@ -164,7 +575,48 @@ func (r *PostgresRepository) DeletePendingDatasetContribution(ctx context.Contex
 
 // Validator operations
 func (r *PostgresRepository) SaveValidator(ctx context.Context, validator *models.Validator) error {
-	// TODO
+	query := `
+		INSERT INTO validators.validators (
+			consensus_address, operator_address, account_address, moniker, identity,
+			website, security_contact, details, commission_rate, voting_power,
+			status, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+		)
+		ON CONFLICT (consensus_address) DO UPDATE SET
+			operator_address = EXCLUDED.operator_address,
+			account_address = EXCLUDED.account_address,
+			moniker = EXCLUDED.moniker,
+			identity = EXCLUDED.identity,
+			website = EXCLUDED.website,
+			security_contact = EXCLUDED.security_contact,
+			details = EXCLUDED.details,
+			commission_rate = EXCLUDED.commission_rate,
+			voting_power = EXCLUDED.voting_power,
+			status = EXCLUDED.status,
+			updated_at = EXCLUDED.updated_at
+	`
+
+	_, err := r.db.Exec(ctx, query,
+		validator.ConsensusAddress,
+		validator.OperatorAddress,
+		validator.AccountAddress,
+		validator.Moniker,
+		validator.Identity,
+		validator.Website,
+		validator.SecurityContact,
+		validator.Details,
+		validator.CommissionRate,
+		validator.VotingPower,
+		validator.Status,
+		validator.CreatedAt,
+		validator.UpdatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save validator %s: %w", validator.ConsensusAddress, err)
+	}
+
 	return nil
 }
 
