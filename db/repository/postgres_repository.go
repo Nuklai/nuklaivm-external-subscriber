@@ -129,8 +129,46 @@ func (r *PostgresRepository) GetBlockByHeight(ctx context.Context, height int64)
 }
 
 func (r *PostgresRepository) GetBlockByHash(ctx context.Context, hash string) (*models.Block, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            height, hash, proposer_address, num_txs, total_gas, size, time,
+            app_hash, version, chain_id, last_block_id, last_commit_hash,
+            validators_hash, next_validators_hash, consensus_hash, data_hash,
+            evidence_hash, created_at
+        FROM blocks.blocks
+        WHERE hash = $1
+    `
+
+	var block models.Block
+	err := r.db.QueryRow(ctx, query, hash).Scan(
+		&block.Height,
+		&block.Hash,
+		&block.ProposerAddress,
+		&block.NumTxs,
+		&block.TotalGas,
+		&block.Size,
+		&block.Time,
+		&block.AppHash,
+		&block.Version,
+		&block.ChainID,
+		&block.LastBlockID,
+		&block.LastCommitHash,
+		&block.ValidatorsHash,
+		&block.NextValidatorsHash,
+		&block.ConsensusHash,
+		&block.DataHash,
+		&block.EvidenceHash,
+		&block.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get block by hash %s: %w", hash, err)
+	}
+
+	return &block, nil
 }
 
 func (r *PostgresRepository) GetLatestBlock(ctx context.Context) (*models.Block, error) {
@@ -178,13 +216,112 @@ func (r *PostgresRepository) GetLatestBlock(ctx context.Context) (*models.Block,
 }
 
 func (r *PostgresRepository) GetBlocksInRange(ctx context.Context, startHeight, endHeight int64) ([]*models.Block, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            height, hash, proposer_address, num_txs, total_gas, size, time,
+            app_hash, version, chain_id, last_block_id, last_commit_hash,
+            validators_hash, next_validators_hash, consensus_hash, data_hash,
+            evidence_hash, created_at
+        FROM blocks.blocks
+        WHERE height >= $1 AND height <= $2
+        ORDER BY height ASC
+    `
+
+	rows, err := r.db.Query(ctx, query, startHeight, endHeight)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get blocks in range %d-%d: %w", startHeight, endHeight, err)
+	}
+	defer rows.Close()
+
+	var blocks []*models.Block
+	for rows.Next() {
+		var block models.Block
+		err := rows.Scan(
+			&block.Height,
+			&block.Hash,
+			&block.ProposerAddress,
+			&block.NumTxs,
+			&block.TotalGas,
+			&block.Size,
+			&block.Time,
+			&block.AppHash,
+			&block.Version,
+			&block.ChainID,
+			&block.LastBlockID,
+			&block.LastCommitHash,
+			&block.ValidatorsHash,
+			&block.NextValidatorsHash,
+			&block.ConsensusHash,
+			&block.DataHash,
+			&block.EvidenceHash,
+			&block.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan block row: %w", err)
+		}
+		blocks = append(blocks, &block)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating block rows: %w", err)
+	}
+
+	return blocks, nil
 }
 
 func (r *PostgresRepository) GetBlocksByTime(ctx context.Context, startTime, endTime time.Time, limit, offset int) ([]*models.Block, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            height, hash, proposer_address, num_txs, total_gas, size, time,
+            app_hash, version, chain_id, last_block_id, last_commit_hash,
+            validators_hash, next_validators_hash, consensus_hash, data_hash,
+            evidence_hash, created_at
+        FROM blocks.blocks
+        WHERE time >= $1 AND time <= $2
+        ORDER BY height DESC
+        LIMIT $3 OFFSET $4
+    `
+
+	rows, err := r.db.Query(ctx, query, startTime, endTime, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get blocks by time range: %w", err)
+	}
+	defer rows.Close()
+
+	var blocks []*models.Block
+	for rows.Next() {
+		var block models.Block
+		err := rows.Scan(
+			&block.Height,
+			&block.Hash,
+			&block.ProposerAddress,
+			&block.NumTxs,
+			&block.TotalGas,
+			&block.Size,
+			&block.Time,
+			&block.AppHash,
+			&block.Version,
+			&block.ChainID,
+			&block.LastBlockID,
+			&block.LastCommitHash,
+			&block.ValidatorsHash,
+			&block.NextValidatorsHash,
+			&block.ConsensusHash,
+			&block.DataHash,
+			&block.EvidenceHash,
+			&block.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan block row: %w", err)
+		}
+		blocks = append(blocks, &block)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating block rows: %w", err)
+	}
+
+	return blocks, nil
 }
 
 // Txn operations
@@ -247,8 +384,50 @@ func (r *PostgresRepository) SaveTransaction(ctx context.Context, tx *models.Tra
 }
 
 func (r *PostgresRepository) GetTransactionByHash(ctx context.Context, hash string) (*models.Transaction, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            hash, block_height, block_time, index, gas_wanted, gas_used,
+            fee, memo, error_log, status, codespace, messages, signers, created_at
+        FROM transactions.transactions
+        WHERE hash = $1
+    `
+
+	var tx models.Transaction
+	var messagesJSON, signersJSON []byte
+
+	err := r.db.QueryRow(ctx, query, hash).Scan(
+		&tx.Hash,
+		&tx.BlockHeight,
+		&tx.BlockTime,
+		&tx.Index,
+		&tx.GasWanted,
+		&tx.GasUsed,
+		&tx.Fee,
+		&tx.Memo,
+		&tx.ErrorLog,
+		&tx.Status,
+		&tx.Codespace,
+		&messagesJSON,
+		&signersJSON,
+		&tx.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get transaction by hash %s: %w", hash, err)
+	}
+
+	if err := json.Unmarshal(messagesJSON, &tx.Messages); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal transaction messages: %w", err)
+	}
+
+	if err := json.Unmarshal(signersJSON, &tx.Signers); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal transaction signers: %w", err)
+	}
+
+	return &tx, nil
 }
 
 func (r *PostgresRepository) GetTransactionsByBlockHeight(ctx context.Context, height int64) ([]*models.Transaction, error) {
@@ -317,8 +496,75 @@ func (r *PostgresRepository) GetTransactionsByBlockHeight(ctx context.Context, h
 }
 
 func (r *PostgresRepository) GetTransactionsByAddress(ctx context.Context, address string, limit, offset int) ([]*models.Transaction, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            hash, block_height, block_time, index, gas_wanted, gas_used,
+            fee, memo, error_log, status, codespace, messages, signers, created_at
+        FROM transactions.transactions
+        WHERE signers @> $1
+        ORDER BY block_height DESC, index ASC
+        LIMIT $2 OFFSET $3
+    `
+
+	// Create a JSON array with the address
+	addressJSON, err := json.Marshal([]string{address})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal address for query: %w", err)
+	}
+
+	rows, err := r.db.Query(ctx, query, addressJSON, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query transactions for address %s: %w", address, err)
+	}
+	defer rows.Close()
+
+	var transactions []*models.Transaction
+	for rows.Next() {
+		var tx models.Transaction
+		var messagesJSON, signersJSON []byte
+
+		err := rows.Scan(
+			&tx.Hash,
+			&tx.BlockHeight,
+			&tx.BlockTime,
+			&tx.Index,
+			&tx.GasWanted,
+			&tx.GasUsed,
+			&tx.Fee,
+			&tx.Memo,
+			&tx.ErrorLog,
+			&tx.Status,
+			&tx.Codespace,
+			&messagesJSON,
+			&signersJSON,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan transaction row: %w", err)
+		}
+
+		if err := json.Unmarshal(messagesJSON, &tx.Messages); err != nil {
+			logger.Warn("Failed to unmarshal transaction messages",
+				zap.String("hash", tx.Hash),
+				zap.Error(err),
+			)
+		}
+
+		if err := json.Unmarshal(signersJSON, &tx.Signers); err != nil {
+			logger.Warn("Failed to unmarshal transaction signers",
+				zap.String("hash", tx.Hash),
+				zap.Error(err),
+			)
+		}
+
+		transactions = append(transactions, &tx)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating transaction rows: %w", err)
+	}
+
+	return transactions, nil
 }
 
 // Event operations
@@ -367,8 +613,57 @@ func (r *PostgresRepository) SaveEvent(ctx context.Context, event *models.Event)
 }
 
 func (r *PostgresRepository) GetEventsByBlockHeight(ctx context.Context, height int64) ([]*models.Event, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            id, block_height, block_time, tx_hash, tx_index, event_type,
+            event_index, module, attributes, created_at
+        FROM events.events
+        WHERE block_height = $1
+        ORDER BY tx_index ASC, event_index ASC
+    `
+
+	rows, err := r.db.Query(ctx, query, height)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events for block %d: %w", height, err)
+	}
+	defer rows.Close()
+
+	var events []*models.Event
+	for rows.Next() {
+		var event models.Event
+		var attributesJSON []byte
+
+		err := rows.Scan(
+			&event.ID,
+			&event.BlockHeight,
+			&event.BlockTime,
+			&event.TxHash,
+			&event.TxIndex,
+			&event.EventType,
+			&event.EventIndex,
+			&event.Module,
+			&attributesJSON,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event row: %w", err)
+		}
+
+		if err := json.Unmarshal(attributesJSON, &event.Attributes); err != nil {
+			logger.Warn("Failed to unmarshal event attributes",
+				zap.String("id", event.ID),
+				zap.Error(err),
+			)
+		}
+
+		events = append(events, &event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating event rows: %w", err)
+	}
+
+	return events, nil
 }
 
 func (r *PostgresRepository) GetEventsByTxHash(ctx context.Context, txHash string) ([]*models.Event, error) {
@@ -408,7 +703,6 @@ func (r *PostgresRepository) GetEventsByTxHash(ctx context.Context, txHash strin
 			return nil, fmt.Errorf("failed to scan event row: %w", err)
 		}
 
-		// Unmarshal JSON fields
 		if err := json.Unmarshal(attributesJSON, &event.Attributes); err != nil {
 			logger.Warn("Failed to unmarshal event attributes",
 				zap.String("id", event.ID),
@@ -427,13 +721,113 @@ func (r *PostgresRepository) GetEventsByTxHash(ctx context.Context, txHash strin
 }
 
 func (r *PostgresRepository) GetEventsByType(ctx context.Context, eventType string, limit, offset int) ([]*models.Event, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            id, block_height, block_time, tx_hash, tx_index, event_type,
+            event_index, module, attributes, created_at
+        FROM events.events
+        WHERE event_type = $1
+        ORDER BY block_height DESC, tx_index ASC, event_index ASC
+        LIMIT $2 OFFSET $3
+    `
+
+	rows, err := r.db.Query(ctx, query, eventType, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events by type %s: %w", eventType, err)
+	}
+	defer rows.Close()
+
+	var events []*models.Event
+	for rows.Next() {
+		var event models.Event
+		var attributesJSON []byte
+
+		err := rows.Scan(
+			&event.ID,
+			&event.BlockHeight,
+			&event.BlockTime,
+			&event.TxHash,
+			&event.TxIndex,
+			&event.EventType,
+			&event.EventIndex,
+			&event.Module,
+			&attributesJSON,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event row: %w", err)
+		}
+
+		if err := json.Unmarshal(attributesJSON, &event.Attributes); err != nil {
+			logger.Warn("Failed to unmarshal event attributes",
+				zap.String("id", event.ID),
+				zap.Error(err),
+			)
+		}
+
+		events = append(events, &event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating event rows: %w", err)
+	}
+
+	return events, nil
 }
 
 func (r *PostgresRepository) GetEventsByModule(ctx context.Context, module string, limit, offset int) ([]*models.Event, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            id, block_height, block_time, tx_hash, tx_index, event_type,
+            event_index, module, attributes, created_at
+        FROM events.events
+        WHERE module = $1
+        ORDER BY block_height DESC, tx_index ASC, event_index ASC
+        LIMIT $2 OFFSET $3
+    `
+
+	rows, err := r.db.Query(ctx, query, module, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events by module %s: %w", module, err)
+	}
+	defer rows.Close()
+
+	var events []*models.Event
+	for rows.Next() {
+		var event models.Event
+		var attributesJSON []byte
+
+		err := rows.Scan(
+			&event.ID,
+			&event.BlockHeight,
+			&event.BlockTime,
+			&event.TxHash,
+			&event.TxIndex,
+			&event.EventType,
+			&event.EventIndex,
+			&event.Module,
+			&attributesJSON,
+			&event.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event row: %w", err)
+		}
+
+		if err := json.Unmarshal(attributesJSON, &event.Attributes); err != nil {
+			logger.Warn("Failed to unmarshal event attributes",
+				zap.String("id", event.ID),
+				zap.Error(err),
+			)
+		}
+
+		events = append(events, &event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating event rows: %w", err)
+	}
+
+	return events, nil
 }
 
 // Account operations
@@ -473,12 +867,70 @@ func (r *PostgresRepository) SaveAccount(ctx context.Context, account *models.Ac
 }
 
 func (r *PostgresRepository) GetAccountByAddress(ctx context.Context, address string) (*models.Account, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            address, account_type, balance, last_active, created_at, updated_at
+        FROM accounts.accounts
+        WHERE address = $1
+    `
+
+	var account models.Account
+	var balanceJSON []byte
+
+	err := r.db.QueryRow(ctx, query, address).Scan(
+		&account.Address,
+		&account.AccountType,
+		&balanceJSON,
+		&account.LastActive,
+		&account.CreatedAt,
+		&account.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get account by address %s: %w", address, err)
+	}
+
+	// Unmarshal JSON fields
+	if err := json.Unmarshal(balanceJSON, &account.Balance); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal account balance: %w", err)
+	}
+
+	return &account, nil
 }
 
 func (r *PostgresRepository) UpdateAccountBalance(ctx context.Context, address string, balance models.Coins) error {
-	// TODO
+	query := `
+        UPDATE accounts.accounts
+        SET balance = $1, 
+            last_active = $2,
+            updated_at = $3
+        WHERE address = $4
+    `
+
+	// Convert balance to JSON
+	balanceJSON, err := json.Marshal(balance)
+	if err != nil {
+		return fmt.Errorf("failed to marshal account balance: %w", err)
+	}
+
+	result, err := r.db.Exec(ctx, query,
+		balanceJSON,
+		time.Now().UTC(),
+		time.Now().UTC(),
+		address,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update account balance: %w", err)
+	}
+
+	// Check if the account exists
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
 	return nil
 }
 
