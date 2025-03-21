@@ -724,7 +724,7 @@ func (r *PostgresRepository) SaveProposalDeposit(ctx context.Context, deposit *m
 	return nil
 }
 
-func (r *PostgresRepository) GetProposalDeposits(ctx context.Context, proposalID int64) ([]*models.ProposalDeposit, error) {
+func (r *PostgresRepository) GetProposalDeposits(tx context.Context, proposalID int64) ([]*models.ProposalDeposit, error) {
 	// TODO
 	return nil, nil
 }
