@@ -141,7 +141,7 @@ func (p *Processor) saveTransactions(ctx context.Context, blockResult *ctypes.Re
 		}
 
 		// Extract signers from transaction
-		signers, err := extractSigners(txDetail.Tx)
+		signers, err := p.extractSigners(txDetail.Tx)
 		if err != nil {
 			logger.Warn("Failed to extract signers from transaction",
 				zap.String("hash", txHash),
@@ -151,7 +151,7 @@ func (p *Processor) saveTransactions(ctx context.Context, blockResult *ctypes.Re
 		}
 
 		// Extract messages from transaction
-		messages, err := extractMessages(txDetail.Tx)
+		messages, err := p.extractMessages(txDetail.Tx)
 		if err != nil {
 			logger.Warn("Failed to extract messages from transaction",
 				zap.String("hash", txHash),
@@ -168,8 +168,8 @@ func (p *Processor) saveTransactions(ctx context.Context, blockResult *ctypes.Re
 			Index:       int32(i),
 			GasWanted:   txResult.GasWanted,
 			GasUsed:     txResult.GasUsed,
-			Fee:         extractFee(txDetail.Tx),
-			Memo:        extractMemo(txDetail.Tx),
+			Fee:         p.extractFee(txDetail.Tx),
+			Memo:        p.extractMemo(txDetail.Tx),
 			ErrorLog:    txResult.Log,
 			Status:      getTxStatus(txResult.Code),
 			Codespace:   txResult.Codespace,
@@ -207,7 +207,7 @@ func (p *Processor) processTxEvents(ctx context.Context, height int64, blockTime
 // Processes events
 func (p *Processor) processEvents(ctx context.Context, height int64, blockTime time.Time, txHash string, txIndex int, events []abci.Event, source string) error {
 	for i, event := range events {
-		module := extractModuleFromEventType(event.Type)
+		module := p.extractModuleFromEventType(event.Type)
 
 		var eventID string
 		if txHash != "" {
@@ -256,27 +256,32 @@ func getTxStatus(code uint32) string {
 	return "failed"
 }
 
-func extractModuleFromEventType(eventType string) string {
-	// TODO: Module extraction based on the event type
-	return "unknown"
+func (p *Processor) extractModuleFromEventType(eventType string) string {
+	return parser.MapEventTypeToModule(eventType)
 }
 
-func extractSigners(tx types.Tx) ([]string, error) {
-	// TODO: Extract Signer from transactions
-	return []string{}, nil
+func (p *Processor) extractSigners(tx types.Tx) ([]string, error) {
+	_, signers, _, err := p.txParser.ParseTx(tx)
+	return signers, err
 }
 
-func extractMessages(tx types.Tx) (models.Messages, error) {
-	// TODO: Extract Messages from transactions
-	return models.Messages{}, nil
+func (p *Processor) extractMessages(tx types.Tx) (models.Messages, error) {
+	messages, _, _, err := p.txParser.ParseTx(tx)
+	return messages, err
 }
 
-func extractFee(tx types.Tx) string {
-	// TODO: Extract Fee from transactions
-	return "0"
+func (p *Processor) extractFee(tx types.Tx) string {
+	fee, err := p.txParser.ExtractFee(tx)
+	if err != nil {
+		return "0"
+	}
+	return fee
 }
 
-func extractMemo(tx types.Tx) string {
-	// TODO: Extract Memo from transactions
-	return ""
+func (p *Processor) extractMemo(tx types.Tx) string {
+	_, _, memo, err := p.txParser.ParseTx(tx)
+	if err != nil {
+		return ""
+	}
+	return memo
 }
