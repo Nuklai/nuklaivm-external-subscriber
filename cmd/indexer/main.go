@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nuklai/nuklaivm-external-subscriber/api"
 	"github.com/nuklai/nuklaivm-external-subscriber/core"
 
 	"github.com/nuklai/nuklaivm-external-subscriber/config"
@@ -107,6 +108,14 @@ func run(_ *cobra.Command, _ []string) {
 		logger.Fatal("Failed to start indexer", zap.Error(err))
 	}
 
+	// Initialize API server
+	apiServer := api.NewServer(&cfg.Server, indexer.GetRepository())
+	go func() {
+		if err := apiServer.Start(); err != nil {
+			logger.Fatal("Failed to start API server", zap.Error(err))
+		}
+	}()
+
 	// Wait for interrupt signal to gracefully shut down
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -115,10 +124,13 @@ func run(_ *cobra.Command, _ []string) {
 	logger.Info("Shutting down Nuklai indexer...")
 
 	// Create a new context with timeout for shutdown
-	_, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
-	// TODO: Use shutdownCtx
+	if err := apiServer.Stop(shutdownCtx); err != nil {
+		logger.Error("Failed to stop API server", zap.Error(err))
+	}
 
+	// Stop the indexer
 	indexer.Stop()
 }

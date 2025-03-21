@@ -130,3 +130,8 @@ func (i *Indexer) monitorSyncStatus(ctx context.Context) {
 		}
 	}
 }
+
+// GetRepository returns the indexer's repository
+func (i *Indexer) GetRepository() repository.Repository {
+	return i.repo
+}
