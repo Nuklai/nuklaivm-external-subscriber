@@ -50,7 +50,7 @@ func NewIndexer(cfg *config.Config) (*Indexer, error) {
 	blockFetcher := blocks.NewFetcher(rpcClient)
 
 	// Create block processor
-	blockProcessor := blocks.NewProcessor(rpcClient, repo)
+	blockProcessor := blocks.NewProcessor(blockFetcher, repo, rpcClient)
 
 	// Create block syncer
 	blockSyncer := blocks.NewSyncer(blockProcessor, &cfg.Blockchain)
