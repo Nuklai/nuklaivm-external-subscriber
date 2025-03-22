@@ -1025,8 +1025,53 @@ func (r *PostgresRepository) GetDatasetByDenom(ctx context.Context, denom string
 }
 
 func (r *PostgresRepository) GetDatasets(ctx context.Context, limit, offset int) ([]*models.Dataset, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            denom, name, ticker, description, url, supply, categories,
+            license_name, license_symbol, license_url, is_community_dataset,
+            metadata, owner, created_at, updated_at
+        FROM datasets.datasets
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query datasets: %w", err)
+	}
+	defer rows.Close()
+
+	var datasets []*models.Dataset
+	for rows.Next() {
+		var dataset models.Dataset
+		err := rows.Scan(
+			&dataset.Denom,
+			&dataset.Name,
+			&dataset.Ticker,
+			&dataset.Description,
+			&dataset.URL,
+			&dataset.Supply,
+			&dataset.Categories,
+			&dataset.LicenseName,
+			&dataset.LicenseSymbol,
+			&dataset.LicenseURL,
+			&dataset.IsCommunityDataset,
+			&dataset.Metadata,
+			&dataset.Owner,
+			&dataset.CreatedAt,
+			&dataset.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan dataset row: %w", err)
+		}
+		datasets = append(datasets, &dataset)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating dataset rows: %w", err)
+	}
+
+	return datasets, nil
 }
 
 func (r *PostgresRepository) UpdateDataset(ctx context.Context, dataset *models.Dataset) error {
