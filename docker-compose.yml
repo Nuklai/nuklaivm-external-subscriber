@@ -3,95 +3,76 @@ networks:
     external: true
 
 services:
-  nuklaivm-postgres:
-    image: postgres:14
-    container_name: nuklaivm-postgres
-    ports:
-      - '5432:5432'
-    networks:
-      - nuklaivm-network
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./certs:/etc/postgresql/certs
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
-      timeout: 10s
-      retries: 5
-    entrypoint:
-      - /bin/bash
-      - -c
-      - |
-        echo "Starting PostgreSQL setup..."
-
-        # Ensure PostgreSQL data directory is initialized
-        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
-          echo "Initializing PostgreSQL data directory..."
-          su postgres -c "initdb -D /var/lib/postgresql/data"
-        fi
-
-        # Generate SSL certificates if not present
-        if [ ! -f /etc/postgresql/certs/server.crt ]; then
-          echo "Generating SSL certificates..."
-          mkdir -p /etc/postgresql/certs
-          openssl req -new -x509 -nodes -days 365 \
-            -keyout /etc/postgresql/certs/server.key \
-            -out /etc/postgresql/certs/server.crt \
-            -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
-          chmod 600 /etc/postgresql/certs/server.key
-          chown -R postgres:postgres /etc/postgresql/certs
-          echo "SSL certificates generated."
-        fi
-
-        # Add both SSL and non-SSL rules to pg_hba.conf
-        echo "hostssl all all 0.0.0.0/0 scram-sha-256" >> /var/lib/postgresql/data/pg_hba.conf
-        echo "host all all 0.0.0.0/0 md5" >> /var/lib/postgresql/data/pg_hba.conf
-
-        # Start PostgreSQL in the background to allow commands
-        su postgres -c "pg_ctl -D /var/lib/postgresql/data -l /var/lib/postgresql/data/logfile start"
-
-        # Set the password for the postgres user
-        echo "Setting password for postgres user..."
-        su postgres -c "psql -c \"ALTER USER postgres WITH PASSWORD 'postgres'\""
-
-        # Reload PostgreSQL configuration
-        su postgres -c "pg_ctl -D /var/lib/postgresql/data reload"
-
-        # Create the database if it doesn't exist
-        su postgres -c "psql -c 'CREATE DATABASE nuklaivm'"
-
-        # Stop the background server
-        su postgres -c "pg_ctl -D /var/lib/postgresql/data stop"
-
-        # Start PostgreSQL as the main process
-        exec su postgres -c "postgres -c ssl=on \
-          -c ssl_cert_file=/etc/postgresql/certs/server.crt \
-          -c ssl_key_file=/etc/postgresql/certs/server.key"
-    restart: always
-
-  nuklaivm-subscriber:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: nuklaivm-subscriber
-    networks:
-      - nuklaivm-network
-    depends_on:
-      nuklaivm-postgres:
-        condition: service_healthy
+  postgres:
+    image: postgres:16-alpine
     environment:
-      DB_HOST: nuklaivm-postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: nuklaivm
-      DB_SSLMODE: require
-      GRPC_WHITELISTED_BLOCKCHAIN_NODES: '172.17.0.0/16,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nuklai_indexer
     ports:
-      - '8080:8080'
-      - '50051:50051'
-    command: ['/app/subscriber']
-    restart: always
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Uncomment this section if you want to use Adminer to manage the database
+  # adminer:
+  #   image: adminer
+  #   ports:
+  #     - "8081:8080"
+  #   depends_on:
+  #     - postgres
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # Indexer service (uncomment when ready to deploy)
+  # indexer:
+  #   build: .
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./config:/app/config
+  #   environment:
+  #     - NUKLAI_INDEXER_LOG_LEVEL=debug
+  #     - NUKLAI_INDEXER_DATABASE_HOST=postgres
+  #     - NUKLAI_INDEXER_DATABASE_PORT=5432
+  #     - NUKLAI_INDEXER_DATABASE_USERNAME=postgres
+  #     - NUKLAI_INDEXER_DATABASE_PASSWORD=postgres
+  #     - NUKLAI_INDEXER_DATABASE_DATABASE=nuklai_indexer
 
 volumes:
-  pgdata:
+  postgres-data:
+  prometheus-data:
+  grafana-data:

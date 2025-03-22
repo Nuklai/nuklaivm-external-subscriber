@@ -1,0 +1,26 @@
+blockchain:
+  fetch_interval: 1s
+  fetch_timeout: 10s
+  rpc_endpoints:
+    - http://localhost:26657
+  start_height: 1
+  sync_concurrency: 10
+database:
+  connection_max_lifetime: 1h
+  database: nuklai_indexer
+  host: 127.0.0.1
+  max_idle_connections: 5
+  max_open_connections: 25
+  password: postgres
+  port: 5432
+  ssl_mode: disable
+  username: postgres
+log_level: info
+server:
+  cert_file: ""
+  enable_rate_limiting: true
+  enable_tls: false
+  host: 0.0.0.0
+  key_file: ""
+  port: 8080
+  requests_per_minute: 100

@@ -12,8 +12,8 @@ import (
 	"time"
 
 	comethttp "github.com/cometbft/cometbft/rpc/client/http"
+	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/cometbft/cometbft/types"
-	ctypes "github.com/cometbft/cometbft/types"
 	"github.com/nuklai/nuklaivm-external-subscriber/utils/logger"
 	"go.uber.org/zap"
 )

@@ -1,0 +1,108 @@
+- .DS_Store
+- .env
+- .env.example
+- .github
+  - workflows
+    - deploy-subscriber.yml
+- .gitignore
+- Dockerfile
+- LICENSE
+- Makefile
+- README.md
+- api
+  - handlers
+    - account.go
+    - block.go
+    - datasets.go
+    - events.go
+    - gov.go
+    - health.go
+    - transactions.go
+    - wasm.go
+  - handlers.go
+  - middleware.go
+  - routes.go
+  - server.go
+- certs
+  - server.crt
+  - server.key
+- client
+  - rpc
+    - client.go
+- cmd
+  - indexer
+    - main.go
+- config
+  - config.go
+  - default.yaml
+- consts
+  - action_names.go
+- core
+  - blocks
+    - fetcher.go
+    - processor.go
+    - syncer.go
+    - types.go
+  - events
+    - handler.go
+    - types.go
+  - indexer.go
+  - parser
+    - tx_parser.go
+  - state
+    - extractor.go
+    - types.go
+  - transactions
+    - processor.go
+    - types.go
+  - types
+    - results.go
+- db
+  - migrations
+    - 001_initial_schema.down.sql
+    - 001_initial_schema.up.sql
+  - models
+    - account.go
+    - block.go
+    - dataset.go
+    - event.go
+    - governance.go
+    - ibc.go
+    - transaction.go
+    - validator.go
+    - wasm.go
+  - postgres
+    - connection.go
+  - repository
+    - errors.go
+    - postgres_repository.go
+    - repository.go
+- docker-compose.yml
+- docs
+  - .DS_Store
+  - rest_api
+    - account.md
+    - actions.md
+    - assets.md
+    - blocks.md
+    - genesis.md
+    - health.md
+    - transactions.md
+    - validator.md
+- go.mod
+- go.sum
+- infra
+  - .DS_Store
+  - aws
+    - task-definition-subscriber.json
+  - scripts
+    - startup.sh
+- main.go
+- metrics
+  - prometheus.go
+- scripts
+  - run.sh
+  - stop.sh
+- utils
+  - logger
+    - logger.go

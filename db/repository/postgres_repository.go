@@ -986,8 +986,42 @@ func (r *PostgresRepository) SaveDataset(ctx context.Context, dataset *models.Da
 }
 
 func (r *PostgresRepository) GetDatasetByDenom(ctx context.Context, denom string) (*models.Dataset, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            denom, name, ticker, description, url, supply, categories,
+            license_name, license_symbol, license_url, is_community_dataset,
+            metadata, owner, created_at, updated_at
+        FROM datasets.datasets
+        WHERE denom = $1
+    `
+
+	var dataset models.Dataset
+	err := r.db.QueryRow(ctx, query, denom).Scan(
+		&dataset.Denom,
+		&dataset.Name,
+		&dataset.Ticker,
+		&dataset.Description,
+		&dataset.URL,
+		&dataset.Supply,
+		&dataset.Categories,
+		&dataset.LicenseName,
+		&dataset.LicenseSymbol,
+		&dataset.LicenseURL,
+		&dataset.IsCommunityDataset,
+		&dataset.Metadata,
+		&dataset.Owner,
+		&dataset.CreatedAt,
+		&dataset.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get dataset by denom %s: %w", denom, err)
+	}
+
+	return &dataset, nil
 }
 
 func (r *PostgresRepository) GetDatasets(ctx context.Context, limit, offset int) ([]*models.Dataset, error) {
