@@ -135,3 +135,7 @@ func (i *Indexer) monitorSyncStatus(ctx context.Context) {
 func (i *Indexer) GetRepository() repository.Repository {
 	return i.repo
 }
+
+func (i *Indexer) GetProcessor() *blocks.Processor {
+	return i.blockProcessor
+}

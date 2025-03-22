@@ -111,8 +111,16 @@ func run(_ *cobra.Command, _ []string) {
 	// Initialize API server
 	apiServer := api.NewServer(&cfg.Server, indexer.GetRepository())
 	go func() {
-		if err := apiServer.Start(); err != nil {
-			logger.Fatal("Failed to start API server", zap.Error(err))
+		// Wait a bit for everything to initialize
+		time.Sleep(5 * time.Second)
+
+		// Manually process a block at height 1
+		ctx := context.Background()
+		err := indexer.GetProcessor().ProcessBlock(ctx, 1)
+		if err != nil {
+			logger.Error("Failed to manually process block", zap.Error(err))
+		} else {
+			logger.Info("Successfully manually processed block at height 1")
 		}
 	}()
 
