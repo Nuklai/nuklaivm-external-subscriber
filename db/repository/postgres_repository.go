@@ -1075,7 +1075,50 @@ func (r *PostgresRepository) GetDatasets(ctx context.Context, limit, offset int)
 }
 
 func (r *PostgresRepository) UpdateDataset(ctx context.Context, dataset *models.Dataset) error {
-	// TODO
+	query := `
+        UPDATE datasets.datasets
+        SET 
+            name = $1,
+            ticker = $2,
+            description = $3,
+            url = $4,
+            supply = $5,
+            categories = $6,
+            license_name = $7,
+            license_symbol = $8,
+            license_url = $9,
+            is_community_dataset = $10,
+            metadata = $11,
+            owner = $12,
+            updated_at = $13
+        WHERE denom = $14
+    `
+
+	result, err := r.db.Exec(ctx, query,
+		dataset.Name,
+		dataset.Ticker,
+		dataset.Description,
+		dataset.URL,
+		dataset.Supply,
+		dataset.Categories,
+		dataset.LicenseName,
+		dataset.LicenseSymbol,
+		dataset.LicenseURL,
+		dataset.IsCommunityDataset,
+		dataset.Metadata,
+		dataset.Owner,
+		time.Now().UTC(),
+		dataset.Denom,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update dataset %s: %w", dataset.Denom, err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
 	return nil
 }
 
