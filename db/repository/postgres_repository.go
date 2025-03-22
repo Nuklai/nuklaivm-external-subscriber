@@ -1123,27 +1123,162 @@ func (r *PostgresRepository) UpdateDataset(ctx context.Context, dataset *models.
 }
 
 func (r *PostgresRepository) SaveDatasetContribution(ctx context.Context, contribution *models.DatasetContribution) error {
-	// TODO
+	query := `
+        INSERT INTO datasets.contributions (
+            contribution_id, denom, data_contributor, data_location, 
+            data_identifier, created_at
+        ) VALUES (
+            $1, $2, $3, $4, $5, $6
+        )
+        ON CONFLICT (contribution_id) DO UPDATE SET
+            denom = EXCLUDED.denom,
+            data_contributor = EXCLUDED.data_contributor,
+            data_location = EXCLUDED.data_location,
+            data_identifier = EXCLUDED.data_identifier
+    `
+
+	_, err := r.db.Exec(ctx, query,
+		contribution.ContributionID,
+		contribution.Denom,
+		contribution.DataContributor,
+		contribution.DataLocation,
+		contribution.DataIdentifier,
+		contribution.CreatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save dataset contribution %s: %w", contribution.ContributionID, err)
+	}
+
 	return nil
 }
 
 func (r *PostgresRepository) GetDatasetContributions(ctx context.Context, denom string) ([]*models.DatasetContribution, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            contribution_id, denom, data_contributor, data_location,
+            data_identifier, created_at
+        FROM datasets.contributions
+        WHERE denom = $1
+        ORDER BY created_at DESC
+    `
+
+	rows, err := r.db.Query(ctx, query, denom)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query dataset contributions: %w", err)
+	}
+	defer rows.Close()
+
+	var contributions []*models.DatasetContribution
+	for rows.Next() {
+		var contribution models.DatasetContribution
+		err := rows.Scan(
+			&contribution.ContributionID,
+			&contribution.Denom,
+			&contribution.DataContributor,
+			&contribution.DataLocation,
+			&contribution.DataIdentifier,
+			&contribution.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan contribution row: %w", err)
+		}
+		contributions = append(contributions, &contribution)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating contribution rows: %w", err)
+	}
+
+	return contributions, nil
 }
 
 func (r *PostgresRepository) SavePendingDatasetContribution(ctx context.Context, contribution *models.PendingDatasetContribution) error {
-	// TODO
+	query := `
+        INSERT INTO datasets.pending_contributions (
+            contribution_id, denom, data_contributor, data_location, 
+            data_identifier, created_at
+        ) VALUES (
+            $1, $2, $3, $4, $5, $6
+        )
+        ON CONFLICT (contribution_id) DO UPDATE SET
+            denom = EXCLUDED.denom,
+            data_contributor = EXCLUDED.data_contributor,
+            data_location = EXCLUDED.data_location,
+            data_identifier = EXCLUDED.data_identifier
+    `
+
+	_, err := r.db.Exec(ctx, query,
+		contribution.ContributionID,
+		contribution.Denom,
+		contribution.DataContributor,
+		contribution.DataLocation,
+		contribution.DataIdentifier,
+		contribution.CreatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to save pending dataset contribution %s: %w", contribution.ContributionID, err)
+	}
+
 	return nil
 }
 
 func (r *PostgresRepository) GetPendingDatasetContributions(ctx context.Context, denom string) ([]*models.PendingDatasetContribution, error) {
-	// TODO
-	return nil, nil
+	query := `
+        SELECT 
+            contribution_id, denom, data_contributor, data_location,
+            data_identifier, created_at
+        FROM datasets.pending_contributions
+        WHERE denom = $1
+        ORDER BY created_at DESC
+    `
+
+	rows, err := r.db.Query(ctx, query, denom)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query pending dataset contributions: %w", err)
+	}
+	defer rows.Close()
+
+	var contributions []*models.PendingDatasetContribution
+	for rows.Next() {
+		var contribution models.PendingDatasetContribution
+		err := rows.Scan(
+			&contribution.ContributionID,
+			&contribution.Denom,
+			&contribution.DataContributor,
+			&contribution.DataLocation,
+			&contribution.DataIdentifier,
+			&contribution.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan pending contribution row: %w", err)
+		}
+		contributions = append(contributions, &contribution)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating pending contribution rows: %w", err)
+	}
+
+	return contributions, nil
 }
 
 func (r *PostgresRepository) DeletePendingDatasetContribution(ctx context.Context, contributionID string) error {
-	// TODO
+	query := `
+        DELETE FROM datasets.pending_contributions
+        WHERE contribution_id = $1
+    `
+
+	result, err := r.db.Exec(ctx, query, contributionID)
+	if err != nil {
+		return fmt.Errorf("failed to delete pending dataset contribution %s: %w", contributionID, err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
 	return nil
 }
 
