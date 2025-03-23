@@ -24,7 +24,7 @@ func (p *TxParser) ParseTx(txBytes []byte) (models.Messages, []string, string, e
 	if err != nil {
 		// Might be a protobuf encoded txn
 		// Empty and log error
-		return models.Messages{}, []string{}, "", fmt.Errorf("could not parse transaction: %w", err)
+		return models.Messages{}, []string{}, "", nil
 	}
 
 	// Extract messages
@@ -208,4 +208,83 @@ func appendIfUnique(slice []string, item string) []string {
 		}
 	}
 	return append(slice, item)
+}
+
+// Helper for parsing JSON transactions
+func (p *TxParser) parseJSONTx(txJSON map[string]interface{}) (models.Messages, []string, string, error) {
+	var messages models.Messages
+	var signers []string
+	var memo string
+
+	if body, ok := txJSON["body"].(map[string]interface{}); ok {
+		// Extract the memo
+		if memoVal, ok := body["memo"].(string); ok {
+			memo = memoVal
+		}
+
+		// Extract messages
+		if msgs, ok := body["messages"].([]interface{}); ok {
+			for _, msg := range msgs {
+				msgMap, ok := msg.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				// Extract type and content
+				typeURL, _ := msgMap["@type"].(string)
+				if typeURL == "" {
+					continue
+				}
+
+				// Remove the "/" prefix if present
+				typeName := strings.TrimPrefix(typeURL, "/")
+
+				// Convert the message to JSON
+				msgJSON, err := json.Marshal(msgMap)
+				if err != nil {
+					continue
+				}
+
+				messages = append(messages, models.Message{
+					Type:    typeName,
+					Content: msgJSON,
+				})
+
+				if from, ok := msgMap["from_address"].(string); ok {
+					signers = appendIfUnique(signers, from)
+				}
+				if from, ok := msgMap["sender"].(string); ok {
+					signers = appendIfUnique(signers, from)
+				}
+				if delegator, ok := msgMap["delegator_address"].(string); ok {
+					signers = appendIfUnique(signers, delegator)
+				}
+				if voter, ok := msgMap["voter"].(string); ok {
+					signers = appendIfUnique(signers, voter)
+				}
+				if proposer, ok := msgMap["proposer"].(string); ok {
+					signers = appendIfUnique(signers, proposer)
+				}
+			}
+		}
+	}
+
+	// Check if we have auth_info for more signer info
+	if authInfo, ok := txJSON["auth_info"].(map[string]interface{}); ok {
+		if signerInfos, ok := authInfo["signer_infos"].([]interface{}); ok {
+			for _, signerInfo := range signerInfos {
+				siMap, ok := signerInfo.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				if pubKey, ok := siMap["public_key"].(map[string]interface{}); ok {
+					if _, ok := pubKey["key"].(string); ok {
+					}
+				}
+			}
+		}
+	}
+
+	return messages, signers, memo, nil
 }

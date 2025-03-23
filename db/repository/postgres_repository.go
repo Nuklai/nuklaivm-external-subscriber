@@ -567,6 +567,71 @@ func (r *PostgresRepository) GetTransactionsByAddress(ctx context.Context, addre
 	return transactions, nil
 }
 
+func (r *PostgresRepository) GetTransactions(ctx context.Context, limit, offset int) ([]*models.Transaction, error) {
+	query := `
+        SELECT 
+            hash, block_height, block_time, index, gas_wanted, gas_used,
+            fee, memo, error_log, status, codespace, messages, signers, created_at
+        FROM transactions.transactions
+        ORDER BY block_height DESC, index ASC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query transactions: %w", err)
+	}
+	defer rows.Close()
+
+	var transactions []*models.Transaction
+	for rows.Next() {
+		var tx models.Transaction
+		var messagesJSON, signersJSON []byte
+
+		err := rows.Scan(
+			&tx.Hash,
+			&tx.BlockHeight,
+			&tx.BlockTime,
+			&tx.Index,
+			&tx.GasWanted,
+			&tx.GasUsed,
+			&tx.Fee,
+			&tx.Memo,
+			&tx.ErrorLog,
+			&tx.Status,
+			&tx.Codespace,
+			&messagesJSON,
+			&signersJSON,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan transaction row: %w", err)
+		}
+
+		if err := json.Unmarshal(messagesJSON, &tx.Messages); err != nil {
+			logger.Warn("Failed to unmarshal transaction messages",
+				zap.String("hash", tx.Hash),
+				zap.Error(err),
+			)
+		}
+
+		if err := json.Unmarshal(signersJSON, &tx.Signers); err != nil {
+			logger.Warn("Failed to unmarshal transaction signers",
+				zap.String("hash", tx.Hash),
+				zap.Error(err),
+			)
+		}
+
+		transactions = append(transactions, &tx)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating transaction rows: %w", err)
+	}
+
+	return transactions, nil
+}
+
 // Event operations
 func (r *PostgresRepository) SaveEvent(ctx context.Context, event *models.Event) error {
 	query := `

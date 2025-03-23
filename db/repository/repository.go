@@ -25,6 +25,7 @@ type Repository interface {
 	GetTransactionByHash(ctx context.Context, hash string) (*models.Transaction, error)
 	GetTransactionsByBlockHeight(ctx context.Context, height int64) ([]*models.Transaction, error)
 	GetTransactionsByAddress(ctx context.Context, address string, limit, offset int) ([]*models.Transaction, error)
+	GetTransactions(ctx context.Context, limit, offset int) ([]*models.Transaction, error)
 
 	// Events
 	SaveEvent(ctx context.Context, event *models.Event) error

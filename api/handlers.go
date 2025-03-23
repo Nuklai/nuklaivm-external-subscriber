@@ -101,9 +101,7 @@ func (s *Server) getTransactionsHandler(w http.ResponseWriter, r *http.Request) 
 	if address != "" {
 		transactions, err = s.repository.GetTransactionsByAddress(r.Context(), address, limit, offset)
 	} else {
-		// TODO: Implement GetTransactions method in repo
-		respondWithError(w, http.StatusNotImplemented, "Generic transaction listing not implemented yet")
-		return
+		transactions, err = s.repository.GetTransactions(r.Context(), limit, offset)
 	}
 
 	if err != nil {
