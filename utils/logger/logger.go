@@ -35,14 +35,34 @@ func InitLogger(logLevel string) {
 		level = zapcore.FatalLevel
 	}
 
-	// Create encoder config
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+	isDevelopment := os.Getenv("NUKLAI_INDEXER_ENV") != "production"
+
+	var encoder zapcore.Encoder
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+
+	if isDevelopment {
+		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	} else {
+		// In production mode, use JSON encoder
+		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	}
 
 	// Create core
 	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
+		encoder,
 		zapcore.AddSync(os.Stdout),
 		level,
 	)

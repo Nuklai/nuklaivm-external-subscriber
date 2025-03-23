@@ -570,33 +570,40 @@ func (r *PostgresRepository) GetTransactionsByAddress(ctx context.Context, addre
 // Event operations
 func (r *PostgresRepository) SaveEvent(ctx context.Context, event *models.Event) error {
 	query := `
-		INSERT INTO events.events (
-			id, block_height, block_time, tx_hash, tx_index, event_type,
-			event_index, module, attributes, created_at
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-		)
-		ON CONFLICT (id) DO UPDATE SET
-			block_height = EXCLUDED.block_height,
-			block_time = EXCLUDED.block_time,
-			tx_hash = EXCLUDED.tx_hash,
-			tx_index = EXCLUDED.tx_index,
-			event_type = EXCLUDED.event_type,
-			event_index = EXCLUDED.event_index,
-			module = EXCLUDED.module,
-			attributes = EXCLUDED.attributes
-	`
+        INSERT INTO events.events (
+            id, block_height, block_time, tx_hash, tx_index, event_type,
+            event_index, module, attributes, created_at
+        ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+        )
+        ON CONFLICT (id) DO UPDATE SET
+            block_height = EXCLUDED.block_height,
+            block_time = EXCLUDED.block_time,
+            tx_hash = EXCLUDED.tx_hash,
+            tx_index = EXCLUDED.tx_index,
+            event_type = EXCLUDED.event_type,
+            event_index = EXCLUDED.event_index,
+            module = EXCLUDED.module,
+            attributes = EXCLUDED.attributes
+    `
 
 	attributesJSON, err := json.Marshal(event.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event attributes: %w", err)
 	}
 
+	var txHashParam interface{}
+	if event.TxHash == "" {
+		txHashParam = nil
+	} else {
+		txHashParam = event.TxHash
+	}
+
 	_, err = r.db.Exec(ctx, query,
 		event.ID,
 		event.BlockHeight,
 		event.BlockTime,
-		event.TxHash,
+		txHashParam,
 		event.TxIndex,
 		event.EventType,
 		event.EventIndex,

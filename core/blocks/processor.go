@@ -240,13 +240,16 @@ func (p *Processor) processEvents(ctx context.Context, height int64, blockTime t
 			ID:          eventID,
 			BlockHeight: height,
 			BlockTime:   blockTime,
-			TxHash:      txHash,
 			TxIndex:     int32(txIndex),
 			EventType:   event.Type,
 			EventIndex:  int32(i),
 			Module:      module,
 			Attributes:  attributes,
 			CreatedAt:   time.Now().UTC(),
+		}
+
+		if txHash != "" {
+			eventModel.TxHash = txHash
 		}
 
 		// Save event to repo

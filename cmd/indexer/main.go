@@ -100,7 +100,7 @@ func run(_ *cobra.Command, _ []string) {
 	}
 
 	// Create context with timeout, use the cancel function
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Start indexer
