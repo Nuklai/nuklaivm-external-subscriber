@@ -110,6 +110,14 @@ func run(_ *cobra.Command, _ []string) {
 
 	// Initialize API server
 	apiServer := api.NewServer(&cfg.Server, indexer.GetRepository())
+
+	// Start API server
+	go func() {
+		if err := apiServer.Start(); err != nil {
+			logger.Error("Failed to start API server", zap.Error(err))
+		}
+	}()
+
 	go func() {
 		// Wait a bit for everything to initialize
 		time.Sleep(5 * time.Second)

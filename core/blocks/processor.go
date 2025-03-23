@@ -325,16 +325,24 @@ func (p *Processor) processStateExtraction(ctx context.Context, height int64, bl
 
 	stateResponse, err := p.stateExtractor.ExtractState(ctx, req)
 	if err != nil {
-		return fmt.Errorf("failed to extract state: %w", err)
+		logger.Warn("Failed to extract state completely",
+			zap.Int64("height", height),
+			zap.Error(err))
+
+		if stateResponse == nil {
+			return nil
+		}
 	}
 
-	for _, validator := range stateResponse.Validators {
-		err := p.repository.SaveValidator(ctx, validator)
-		if err != nil {
-			logger.Warn("Failed to save validator",
-				zap.String("address", validator.OperatorAddress),
-				zap.Error(err),
-			)
+	if len(stateResponse.Validators) > 0 {
+		for _, validator := range stateResponse.Validators {
+			err := p.repository.SaveValidator(ctx, validator)
+			if err != nil {
+				logger.Warn("Failed to save validator",
+					zap.String("address", validator.OperatorAddress),
+					zap.Error(err),
+				)
+			}
 		}
 	}
 

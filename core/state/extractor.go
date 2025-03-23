@@ -33,49 +33,61 @@ func NewStateExtractor(rpcClient *rpc.Client, repo repository.Repository) Extrac
 // Extract state data at the specified height
 func (e *StateExtractor) ExtractState(ctx context.Context, req *StateRequest) (*StateResponse, error) {
 	response := &StateResponse{}
-	var err error
+	var lastErr error
 
 	// Extract accounts
 	if len(req.AccountAddresses) > 0 {
-		response.Accounts, err = e.ExtractAccounts(ctx, req.Height, req.AccountAddresses)
+		accounts, err := e.ExtractAccounts(ctx, req.Height, req.AccountAddresses)
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract accounts: %w", err)
+			logger.Warn("Failed to extract accounts", zap.Error(err))
+			lastErr = fmt.Errorf("failed to extract accounts: %w", err)
 		}
+		response.Accounts = accounts
 	}
 
 	// Extract validators
-	response.Validators, err = e.ExtractValidators(ctx, req.Height)
+	validators, err := e.ExtractValidators(ctx, req.Height)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract validators: %w", err)
+		logger.Warn("Failed to extract validators", zap.Error(err))
+		lastErr = fmt.Errorf("failed to extract validators: %w", err)
 	}
+	response.Validators = validators
 
 	// Extract delegations
 	if len(req.AccountAddresses) > 0 {
-		response.Delegations, err = e.ExtractDelegations(ctx, req.Height, req.AccountAddresses)
+		delegations, err := e.ExtractDelegations(ctx, req.Height, req.AccountAddresses)
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract delegations: %w", err)
+			logger.Warn("Failed to extract delegations", zap.Error(err))
+			lastErr = fmt.Errorf("failed to extract delegations: %w", err)
 		}
+		response.Delegations = delegations
 	}
 
 	// Extract datasets
-	response.Datasets, err = e.ExtractDatasets(ctx, req.Height)
+	datasets, err := e.ExtractDatasets(ctx, req.Height)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract datasets: %w", err)
+		logger.Warn("Failed to extract datasets", zap.Error(err))
+		lastErr = fmt.Errorf("failed to extract datasets: %w", err)
 	}
+	response.Datasets = datasets
 
 	// Extract WASM contracts
-	response.WasmContracts, err = e.ExtractWasmContracts(ctx, req.Height)
+	contracts, err := e.ExtractWasmContracts(ctx, req.Height)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract WASM contracts: %w", err)
+		logger.Warn("Failed to extract WASM contracts", zap.Error(err))
+		lastErr = fmt.Errorf("failed to extract WASM contracts: %w", err)
 	}
+	response.WasmContracts = contracts
 
 	// Extract governance proposals
-	response.Proposals, err = e.ExtractProposals(ctx, req.Height)
+	proposals, err := e.ExtractProposals(ctx, req.Height)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract governance proposals: %w", err)
+		logger.Warn("Failed to extract governance proposals", zap.Error(err))
+		lastErr = fmt.Errorf("failed to extract proposals: %w", err)
 	}
+	response.Proposals = proposals
 
-	return response, nil
+	return response, lastErr
 }
 
 // Extract account info for the specified addresses
@@ -157,6 +169,11 @@ func (e *StateExtractor) ExtractValidators(ctx context.Context, height int64) ([
 		return nil, fmt.Errorf("failed to query validators: %w", err)
 	}
 
+	if len(resp.Response.Value) == 0 {
+		logger.Debug("Empty validator response from blockchain")
+		return []*models.Validator{}, nil
+	}
+
 	var validatorResponse struct {
 		Validators []struct {
 			OperatorAddress string `json:"operator_address"`
@@ -183,23 +200,31 @@ func (e *StateExtractor) ExtractValidators(ctx context.Context, height int64) ([
 
 	err = json.Unmarshal(resp.Response.Value, &validatorResponse)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal validator response: %w", err)
+		logger.Warn("Failed to unmarshal validator response, returning empty list",
+			zap.Error(err),
+			zap.String("response", string(resp.Response.Value)),
+		)
+		return []*models.Validator{}, nil
 	}
 
 	validators := make([]*models.Validator, 0, len(validatorResponse.Validators))
 
 	for _, v := range validatorResponse.Validators {
 		// Decode consensus pubkey to get consensus address
-		pubkeyBytes, err := base64.StdEncoding.DecodeString(v.ConsensusPubkey.Key)
+		var pubkeyBytes []byte
+		var consensusAddr string
+
+		// Handle error when decoding pubkey
+		pubkeyBytes, err = base64.StdEncoding.DecodeString(v.ConsensusPubkey.Key)
 		if err != nil {
-			logger.Warn("Failed to decode validator pubkey",
+			logger.Warn("Failed to decode validator pubkey, using fallback address",
 				zap.String("operator_address", v.OperatorAddress),
 				zap.Error(err))
-			continue
-		}
 
-		// TODO: Convert pubkey to consensus address
-		consensusAddr := fmt.Sprintf("%X", pubkeyBytes[:20])
+			consensusAddr = fmt.Sprintf("fallback_%s", v.OperatorAddress[:20])
+		} else {
+			consensusAddr = fmt.Sprintf("%X", pubkeyBytes[:20])
+		}
 
 		// Create validator model
 		validator := &models.Validator{
@@ -276,10 +301,16 @@ func (e *StateExtractor) ExtractDelegations(ctx context.Context, height int64, d
 // Extract dataset info
 func (e *StateExtractor) ExtractDatasets(ctx context.Context, height int64) ([]*models.Dataset, error) {
 	// Query all datasets availabe
-	path := "nuklai/dataset/v1/datasets"
+	path := "nuklai/dataset/v1/list-dataset"
 	resp, err := e.rpcClient.ABCIQuery(ctx, path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query datasets: %w", err)
+		logger.Debug("Failed to query datasets", zap.Error(err))
+		return []*models.Dataset{}, nil
+	}
+
+	if len(resp.Response.Value) == 0 {
+		logger.Debug("Empty dataset response from blockchain")
+		return []*models.Dataset{}, nil
 	}
 
 	var datasetResponse struct {
@@ -302,7 +333,11 @@ func (e *StateExtractor) ExtractDatasets(ctx context.Context, height int64) ([]*
 
 	err = json.Unmarshal(resp.Response.Value, &datasetResponse)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal dataset response: %w", err)
+		logger.Warn("Failed to unmarshal dataset response, returning empty list",
+			zap.Error(err),
+			zap.String("response", string(resp.Response.Value)),
+		)
+		return []*models.Dataset{}, nil
 	}
 
 	datasets := make([]*models.Dataset, 0, len(datasetResponse.Datasets))
@@ -338,7 +373,15 @@ func (e *StateExtractor) ExtractWasmContracts(ctx context.Context, height int64)
 	path := "cosmwasm/wasm/v1/contracts"
 	resp, err := e.rpcClient.ABCIQuery(ctx, path, nil)
 	if err != nil {
-		logger.Warn("Failed to query WASM contracts, WASM module might not be enabled", zap.Error(err))
+		logger.Warn("Failed to query WASM contracts, WASM module might not be enabled",
+			zap.Error(err),
+			zap.String("path", path))
+		return []*models.WasmContract{}, nil
+	}
+
+	// Check if resp is empty
+	if len(resp.Response.Value) == 0 {
+		logger.Debug("Empty WASM contract response from blockchain")
 		return []*models.WasmContract{}, nil
 	}
 
@@ -348,17 +391,32 @@ func (e *StateExtractor) ExtractWasmContracts(ctx context.Context, height int64)
 
 	err = json.Unmarshal(resp.Response.Value, &contractResponse)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal contract response: %w", err)
+		logger.Warn("Failed to unmarshal contract response, returning empty list",
+			zap.Error(err),
+			zap.String("response", string(resp.Response.Value)))
+		return []*models.WasmContract{}, nil
 	}
 
-	contracts := make([]*models.WasmContract, 0, len(contractResponse.Contracts))
+	contracts := make([]*models.WasmContract, 0)
+
+	if len(contractResponse.Contracts) == 0 {
+		return contracts, nil
+	}
 
 	for _, contractAddr := range contractResponse.Contracts {
 		// Query contract info
 		contractPath := fmt.Sprintf("cosmwasm/wasm/v1/contract/%s", contractAddr)
 		contractResp, err := e.rpcClient.ABCIQuery(ctx, contractPath, nil)
 		if err != nil {
-			logger.Warn("Failed to query contract info", zap.String("address", contractAddr), zap.Error(err))
+			logger.Warn("Failed to query contract info",
+				zap.String("address", contractAddr),
+				zap.Error(err))
+			continue
+		}
+
+		if len(contractResp.Response.Value) == 0 {
+			logger.Debug("Empty contract info response",
+				zap.String("address", contractAddr))
 			continue
 		}
 
@@ -375,7 +433,9 @@ func (e *StateExtractor) ExtractWasmContracts(ctx context.Context, height int64)
 
 		err = json.Unmarshal(contractResp.Response.Value, &contractInfo)
 		if err != nil {
-			logger.Warn("Failed to unmarshal contract info", zap.String("address", contractAddr), zap.Error(err))
+			logger.Warn("Failed to unmarshal contract info",
+				zap.String("address", contractAddr),
+				zap.Error(err))
 			continue
 		}
 
@@ -383,7 +443,9 @@ func (e *StateExtractor) ExtractWasmContracts(ctx context.Context, height int64)
 		var codeID int64
 		_, err = fmt.Sscanf(contractInfo.CodeID, "%d", &codeID)
 		if err != nil {
-			logger.Warn("Failed to parse code ID", zap.String("code_id", contractInfo.CodeID), zap.Error(err))
+			logger.Warn("Failed to parse code ID",
+				zap.String("code_id", contractInfo.CodeID),
+				zap.Error(err))
 			continue
 		}
 
@@ -412,7 +474,16 @@ func (e *StateExtractor) ExtractProposals(ctx context.Context, height int64) ([]
 	path := "cosmos/gov/v1/proposals"
 	resp, err := e.rpcClient.ABCIQuery(ctx, path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query proposals: %w", err)
+		logger.Warn("Failed to query proposals, governance module might not be enabled",
+			zap.Error(err),
+			zap.String("path", path))
+		return []*models.Proposal{}, nil
+	}
+
+	// Check if resp is empty
+	if len(resp.Response.Value) == 0 {
+		logger.Debug("Empty proposal response from blockchain")
+		return []*models.Proposal{}, nil
 	}
 
 	var proposalResponse struct {
@@ -439,16 +510,22 @@ func (e *StateExtractor) ExtractProposals(ctx context.Context, height int64) ([]
 
 	err = json.Unmarshal(resp.Response.Value, &proposalResponse)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal proposal response: %w", err)
+		logger.Warn("Failed to unmarshal proposal response, returning empty list",
+			zap.Error(err),
+			zap.String("response", string(resp.Response.Value)))
+		return []*models.Proposal{}, nil
 	}
 
 	proposals := make([]*models.Proposal, 0, len(proposalResponse.Proposals))
 
+	// Process proposals
 	for _, p := range proposalResponse.Proposals {
 		var proposalID int64
 		_, err = fmt.Sscanf(p.ID, "%d", &proposalID)
 		if err != nil {
-			logger.Warn("Failed to parse proposal ID", zap.String("id", p.ID), zap.Error(err))
+			logger.Warn("Failed to parse proposal ID",
+				zap.String("id", p.ID),
+				zap.Error(err))
 			continue
 		}
 
